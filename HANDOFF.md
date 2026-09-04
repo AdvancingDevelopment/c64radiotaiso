@@ -1,0 +1,120 @@
+# HANDOFF — Radio Taiso 64
+
+Demo-grade C64 (6510/ACME) follow-along program for Radio Taiso No.1 / No.2 with the
+user's own music ("Asa no March" / "Hikari no March" from ~/taiso/score). Plan:
+`~/.claude/plans/let-s-make-a-c64-flickering-walrus.md`.
+
+## Build / test
+
+- `make` → `build/taiso.prg` (+ segment report). Variant builds MUST use
+  `acme -D... --format cbm --outfile build/<name>.prg src/main.asm` (never plain `--outfile`,
+  the PRG then lacks its load address).
+- `./test/boot_test.sh out.png [cycles] [prg] [extra x64sc args]` — headless VICE screenshot
+  (warp, dummy sound). ~19,656 cycles per PAL frame; VICE boot costs ~3.3 s before the PRG runs.
+  Review PNGs after `sips --resampleWidth 768 in.png --out big.png`.
+- Test defines: `TEST_PLAY=1|2` (start routine 1/2 directly), `TEST_TICK=n` (clock jumps so the
+  next tick is n; movement slot resolved), `TEST_FREEZE=1` (hold the clock once tick n is shown),
+  `DEBUG_HUD=1` (row 24: frame tick beat count mv period, hex), `RASTER_DEBUG=1` (border colour
+  per IRQ entry), `TEST_BORDER=1` (red $D020 to see the opened vertical border).
+- `-keybuf` cannot drive tests (no KERNAL keyscan) — use the defines.
+
+## Memory map (constants.asm)
+
+All-RAM configuration `$01 = $35`; own vectors at $FFFA-$FFFF; no KERNAL/BASIC calls anywhere.
+
+| region | use |
+|---|---|
+| $0810-$35FF | code segment: every `src/*.asm` module + small tables (guard CODE_LIMIT) |
+| $3600-$47FF | staging: `gen_digi.asm` assembled with `!pseudopc $E000`, copied to $E000 at boot |
+| $4000-$43FF | screen (bank 1), sprite pointers $43F8 |
+| $4400-$47FF | DYN_SLOTS: sprite slots 16..31 (scroller / logo double buffers, RAM) |
+| $4800-$4FFF | charset (`src/charset.asm`) |
+| $5000-$7FFF | FRAMES: sprite slots 64..255 (`src/gen_sprites.asm`); $7FFF must stay 0 |
+| $8000-$CFFF | data segment: gen_song1/2, gen_poses, gen_glyphs, gen_backdrop, gen_digi2 |
+| $E000-$FFF9 | runtime home of the staged block (digi part 1) |
+
+Zero page: $02-$1F shared (see constants.asm), $20-$2F figure/choreo, $30-$3F music,
+$40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
+
+## Frame skeleton
+
+Raster IRQ chain (`irq.asm`, table `irq_lines`, ascending, all < 256):
+0 line 8 `irq_top` (25-row mode, `logo_commit`) · 1 line 50 `irq_figure` (`figure_commit`) ·
+2 split `irq_split` (`figure_split`) · 3 scroller line `irq_scroll` (`scroller_commit`) ·
+4 line 249 `irq_border` (24-row mode → borders stay open) · 5 line 251 `irq_bottom`
+(`clock_frame`, `music_frame`, `input_scan`, `inc zp_frame`).
+`figure_render` rewrites `irq_lines+2` (split) and `irq_lines+3` (scroller line, ≥ 219, ≤ 246)
+each tick; they must stay ascending. Handlers run with A/X/Y saved by the dispatcher.
+
+Clock (`clock.asm`): tick = 1/8 beat, `zp_tick` 16-bit, `zp_beat` (low byte), `zp_count8`
+1..8. Flags set by the IRQ: `zp_tick_flag` and `zp_beat_flag` (consumed by the main loop,
+`play.asm`), `zp_tick_music` (consumed by `music_frame`). `clock_acc+1` = frames until the next
+tick (for hard restart). `zp_tick_hold` freezes everything (pause). Period table format: 20 words,
+index = segment*10 + ntsc*5 + tempo_level (0..4 = 80..120 %); segment 1 starts at tick 2816.
+`clock_start` (A/X = table lo/hi) primes tick = -1 so tick 0 fires on the next frame.
+
+Main loop (`main.asm` / `play.asm`): frame-synced on `zp_frame`; states ST_TITLE / ST_PLAY /
+ST_PAUSED / ST_FINISH. In PLAY, per tick: `play_track_movement` → `zp_cur_mv` (0 warm-up,
+1..13, 14 finish) + `zp_mv_flag`; `zp_local_tick = tick & 63`; `choreo_tick`; `figure_render`;
+per beat `ui_beat` + spoken count; per movement `choreo_set_anim` + `ui_movement`; every frame
+`scroller_frame`, `ui_frame`, `digi_frame`. Movement grid: `movements.asm` (`mv_start_lo/hi`,
+`mv_anim_r1/r2`, timeline ids 0..19 documented there).
+
+Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code), `keys_stable`.
+
+## Module contracts (each module owns its files; do not edit others' files)
+
+### Music — `src/music.asm`, `src/instruments.asm`, `src/gen_song1.asm`, `src/gen_song2.asm`, `tools/songconv.py`, `tools/check_wav.py`
+- `music_init` (boot, after `detect_pal`): choose the PAL/NTSC note table (copy to RAM).
+- `music_play` (X = song 0/1): load the sequencer at block 0 and call `clock_start` with that
+  song's period table (A = lo, X = hi). `music_seek` (A = block 0..23): reposition all voices at
+  block A (caller sets the clock). `music_stop`, `music_pause` (gates off, keep position),
+  `music_resume`, `music_loop_title` (X = song: loop block 0 for the title, quieter).
+- `music_frame`: called every frame from the bottom IRQ after `clock_frame`; act on
+  `zp_tick_music` (clear it), never on `zp_tick_flag`.
+- Keep `mus_d418` = the byte the music wants in `$D418` (volume | filter mode); write `$D418`
+  only in init/stop/pause/resume — the digi NMI owns `$D418` while a word plays and restores
+  `mus_d418` afterwards.
+- Song data lives in the data segment (`gen_song*.asm`, included at $8000+); player code in the
+  code segment. Period tables `song1_periods` / `song2_periods` (20 words as above) are part of
+  the generated files.
+
+### Puppet — `src/figure.asm`, `src/choreo.asm`, `src/gen_sprites.asm`, `src/gen_poses.asm`, `tools/sample_rig.mjs`, `tools/puppet.py`, `tools/pngw.py`
+- `choreo_set_anim` (A = timeline id 0..19 per `movements.asm`): restart that timeline at
+  cycle tick 0. `choreo_tick`: advance the decoder to `zp_local_tick` (sequential; on a jump
+  replay from 0) → current pose record `pose_cur`.
+- `figure_render` (main loop, per tick): pose → shadow block (8 × X/Y, MSB, pointers, plus the
+  shin set), and update `irq_lines+2/+3`. `figure_commit` (IRQ line 50): write ALL sprite 0-7
+  registers the figure needs (positions, MSB, pointers, `$D017/$D01D`, colours) — other modules
+  reuse the same sprites later in the frame. `figure_split` (IRQ): sprites 4/5 → shins.
+  `figure_init` (PLAY start), `figure_hide`, `figure_set_scale` (A = `fig_scale`, 1 = 2×).
+- Anchor: waist at sprite X 184, feet on text row 20 (sprite Y ≈ 210-217). Keep everything
+  below sprite Y 84 clear of rows 2-3 (Japanese name) and finish the shins by Y 224.
+- Frames at `* = FRAMES` via `gen_sprites.asm` (slots 64+, ≤ 154 frames; slots 16-31 belong to
+  the scroller/logo); pose tables in the data segment; metadata tables wherever they fit.
+
+### UI + text + border sprites — `src/text.asm` (hooks below), `src/charset.asm`, `src/title.asm`, `src/scroller.asm`, `src/gen_glyphs.asm`, `src/gen_backdrop.asm`, `tools/glyphs.py`, `tools/backdrop.py`, `tools/text.json`
+- Hooks called by `play.asm`: `ui_play_init`, `ui_movement`, `ui_beat`, `ui_frame`, `ui_tempo`,
+  `ui_toggle_lang`, `ui_pause_show`, `ui_pause_hide`; by `main.asm`: `enter_title`, `step_title`
+  (must set `zp_routine` and `jmp enter_play`), `enter_finish`, `step_finish` (→ `enter_title`).
+- Scroller/logo: `scroller_init`, `scroller_set_text`, `scroller_frame`, `scroller_commit` (IRQ,
+  line from `irq_lines+3`), `scroller_hide`, `logo_commit` (IRQ line 8), `logo_show`, `logo_hide`.
+  Sprite slots 16..31 at DYN_SLOTS are theirs. Sprites 0-7 registers may be rewritten at the
+  scroller line and at line 8 (the figure rewrites them at line 50).
+- Screen rows: 0 title/tempo/clock, 1 English name, 2-3 Japanese name (16 glyphs max), 4-20
+  figure band (+ sun/rays backdrop, count block cols 1-6, set/pips cols 32-38), 20 horizon,
+  21 stations, 22-24 scroller zone. Palette in constants.asm.
+
+### Voice — `src/digi.asm`, `src/gen_digi.asm` (staged, `!pseudopc $E000`), `src/gen_digi2.asm` (data segment), `tools/digi.py`
+- `digi_play` (A = word: 0-7 ichi..hachi, 8 title1, 9 title2, 10 sutte, 11 haite, 12 otsukare),
+  `digi_stop`, `digi_frame`, `digi_toggle`, `digi_enabled`, `nmi_handler` (CIA2 timer A NMI;
+  must ack `$DD0D`; RESTORE key NMIs are ignored).
+- `$D418` = sample | (`mus_d418` & $F0) while playing; restore `mus_d418` at the end.
+- Staged part ≤ 4608 bytes (STAGE_LIMIT), rest in `gen_digi2.asm`.
+
+## Status log
+
+- 2026-09-04: scaffold done — all-RAM init, vectors, IRQ chain with the border trick (verified:
+  side borders red, top/bottom zones blue), clock with PAL/NTSC period tables, play state
+  skeleton, TEST_TICK/TEST_FREEZE/DEBUG_HUD builds verified (tick 456 → beat 57 count 2 mv 2;
+  jump to 2820 → beat 352, slow period $03EA).

@@ -1,0 +1,4 @@
+build/
+tools/out/
+*.vsf
+.DS_Store
