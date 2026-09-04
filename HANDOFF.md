@@ -36,14 +36,35 @@ All-RAM configuration `$01 = $35`; own vectors at $FFFA-$FFFF; no KERNAL/BASIC c
 Zero page: $02-$1F shared (see constants.asm), $20-$2F figure/choreo, $30-$3F music,
 $40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
 
+## Raster-timing lessons (hard-won, keep them)
+
+1. The VIC compares the raster every cycle: writing `$D012` with the *current* line raises the
+   flag at once, so a late entry run by hand must ack `$D019` first (else it dispatches twice).
+2. Never write a `$D011` value that carries the current raster bit 8 (it becomes the compare
+   MSB): mask with `and #$7f`/`#$77` before `sta $d011`.
+3. The 24-row switch that keeps the vertical border open has a 3-line window (lines 248-251).
+   It is done in the scroller entry after its sprite writes, with a wait for line 248 — the
+   entry itself is straight-line stores (~260 cycles, sprites 4/5 last because the shins may
+   still be running) starting at line 235-239. With the digi NMI (25-30 % CPU) any loop-based
+   version overran into line 251 in 2-8 % of the frames: the border closed and the scroller
+   sprites vanished for a frame ("dropouts"). `DEBUG_HUD` shows the late-switch counter and the
+   max raster at entry/after writes/after switch (must stay < 251).
+4. The bottom entry (music/input/clock) can overrun the frame end on NTSC (only 20 lines left):
+   entry 0's late check handles a raster that has already wrapped past line 8.
+5. IRQ-side code must not use `zp_tmp` (main-loop scratch); use `zp_clock_tmp`/`zp_irq_tmp`.
+6. Sprites re-used later in a frame: a Y write to a running sprite is ignored, a pointer write
+   takes effect on the next fetched row — so re-point a running sprite only into rows that are
+   blank in both slots (that is why sprites 4/5 can switch to the scroller 10 lines before the
+   shin box ends).
+
 ## Frame skeleton
 
 Raster IRQ chain (`irq.asm`, table `irq_lines`, ascending, all < 256):
 0 line 8 `irq_top` (25-row mode, `logo_commit`) · 1 line 50 `irq_figure` (`figure_commit`) ·
-2 split `irq_split` (`figure_split`) · 3 scroller line `irq_scroll` (`scroller_commit`) ·
-4 line 249 `irq_bottom` (24-row mode → borders stay open, then `clock_frame`, `music_frame`,
-`input_scan`, `inc zp_frame`). Late entries are acked before being run by hand; `$D011`
-read-modify-writes must mask bit 7 (raster MSB).
+2 split `irq_split` (`figure_split`) · 3 scroller line 235-239 `irq_scroll` (`scroller_commit`,
+then wait for line 248 and switch to 24-row mode → the vertical border never closes) ·
+4 line 249 `irq_bottom` (`clock_frame`, `music_frame`, `input_scan`, `inc zp_frame`).
+Late entries are acked before being run by hand; `$D011` read-modify-writes mask bit 7.
 `figure_render` rewrites `irq_lines+2` (split) and `irq_lines+3` (scroller line, ≥ 219, ≤ 246)
 each tick; they must stay ascending. Handlers run with A/X/Y saved by the dispatcher.
 
