@@ -3,18 +3,30 @@
 
   python3 tools/check_wav.py build/s1.wav --song 1 [--ntsc] [--start-tick N] [-v]
 
-The capture (see the Makefile / HANDOFF for the x64sc command: coreaudio playback,
--soundrecdev wav, no warp) is analysed with Goertzel filters (stdlib only):
+Capture (real time, no warp; the recorder only gets what the playback device gets, so
+the volume must be > 0 and VICE's display vsync should be off):
+  acme -DTEST_PLAY=1 --format cbm --outfile build/auto1.prg src/main.asm
+  x64sc -default +confirmonexit +VICIIvsync -autostartprgmode 1 -sounddev coreaudio \
+        -soundvolume 3 -soundrecdev wav -soundrecarg build/s1.wav -soundoutput 1 \
+        -soundrate 44100 -limitcycles 40000000 [-ntsc] build/auto1.prg
+(exit code 1 at the cycle limit is normal). The WAV is analysed with Goertzel filters
+(stdlib only):
   1. the first sound in the file locates the start of the music; the first "clean"
      melody note after --start-tick is the timing anchor (its measured onset defines
      the file time of tick 0);
-  2. melody / bass probe notes spread over the capture: the expected pitch (from the
-     generated song data via tools/songconv.py) must be >= 12 dB above its +-1 semitone
-     neighbours, and the measured onset within +-30 ms of the expected time (clock period
-     words -> emulated seconds, so this also validates the tempo, PAL or NTSC);
+  2. melody / bass probe notes spread over the capture (only notes no other voice masks
+     with a tone or harmonic within 250 cents): the expected pitch (from the generated
+     song data via tools/songconv.py) must be >= 12 dB above its +-1 semitone neighbours,
+     and the measured onset within +-30 ms of the expected time. Expected times come from
+     the clock's exact frame arithmetic (period words, tempo event, TEST_TICK jump), so
+     this validates the tempo on PAL and NTSC to the frame;
   3. the long calm-section chords (voice 3 arpeggio): every chord tone present.
 Exit status 1 on any failure. Capture on an otherwise idle machine: VICE's sound sync
 stretches the sample stream when the host cannot keep real time (visible as "drift").
+NTSC note: with the scaffold's irq.asm the bottom IRQ (line 251) overruns the 20-line gap
+to the line-8 IRQ on heavy frames and a whole frame of IRQs is dropped (the clock slips
+one frame per 128-tick block); the NTSC onset check only passes with the late-entry-0
+fix in irq.asm (see the music module's report / HANDOFF).
 """
 import argparse
 import array
@@ -79,9 +91,10 @@ def first_sound(samples, sr, thresh=40):
 
 
 def find_onset(samples, sr, freq, t_lo, t_hi, win=0.020, hop=0.001):
-    """First window (start in [t_lo, t_hi]) whose power reaches 25 % of the peak of the
-    following 100 ms (and 2 % of the range's peak) -> onset estimate (start + win/2).
-    The local reference keeps a louder tone that joins later from delaying the onset."""
+    """Onset of `freq` with window starts in [t_lo, t_hi]: the first window whose power
+    reaches 25 % of the peak of the following 100 ms, that local peak itself being at
+    least 35 % of the range's peak (so leakage floors from other voices cannot trigger,
+    and a louder tone joining later cannot delay the onset) -> start + win/2."""
     n = int(win * sr)
     starts = range(int(t_lo * sr), int(t_hi * sr), max(1, int(hop * sr)))
     powers = [goertzel(samples, sr, freq, s, n) for s in starts]
@@ -90,7 +103,8 @@ def find_onset(samples, sr, freq, t_lo, t_hi, win=0.020, hop=0.001):
     peak = max(powers)
     ahead = int(0.1 / hop)
     for i, p in enumerate(powers):
-        if p >= 0.02 * peak and p >= 0.25 * max(powers[i:i + ahead]):
+        local = max(powers[i:i + ahead])
+        if local >= 0.35 * peak and p >= 0.25 * local:
             return starts[i] / sr + win / 2.0, peak
     return None, peak
 
@@ -113,15 +127,44 @@ def sounding(events, voice_set, span, started_before=None):
     return out
 
 
-def masked(idx, others):
-    """True if a harmonic (1..6) of another sounding tone lies within 60 cents of note idx."""
+def masked(idx, others, win=0.020):
+    """True if a harmonic (1..8) of another sounding tone lies within 250 cents, or within
+    1.2 / win Hz (the analysis window's resolution), of note idx."""
     f = note_hz(idx)
     for o in others:
         fo = note_hz(o)
-        for h in range(1, 7):
-            if abs(1200.0 * math.log2(h * fo / f)) < 60.0:
+        for h in range(1, 9):
+            if abs(1200.0 * math.log2(h * fo / f)) < 250.0 or abs(h * fo - f) < 1.2 / win:
                 return True
     return False
+
+
+def tick_frames(period_words, ntsc, start_tick, count, tempo_level=2):
+    """Frame index (0 = the frame of start_tick) of every tick, simulating clock.asm's
+    8.8 accumulator exactly: clock_start / clock_test_jump prime it with 0 so the start
+    tick fires on the next frame, later ticks follow the countdown; the period switches
+    to segment 1 right after tick 2816 fires."""
+    p0 = period_words[ntsc * 5 + tempo_level]
+    p1 = period_words[10 + ntsc * 5 + tempo_level]
+    per = p1 if start_tick > songconv.TEMPO_EVENT_TICK else p0
+    lo = hi = 0
+    tick = start_tick - 1
+    frames = {}
+    f = 0
+    while tick < start_tick + count:
+        hi = (hi - 1) & 0xFF
+        if hi < 0x80:
+            f += 1
+            continue
+        tick += 1
+        frames[tick] = f
+        ssum = lo + (per & 0xFF)
+        lo = ssum & 0xFF
+        hi = (hi + (per >> 8) + (ssum >> 8)) & 0xFF
+        if tick == songconv.TEMPO_EVENT_TICK:
+            per = p1
+        f += 1
+    return frames
 
 
 def main(argv=None):
@@ -141,36 +184,37 @@ def main(argv=None):
     ntsc = 1 if a.ntsc else 0
     secs = lambda tick: songconv.tick_seconds(tick, pw, ntsc)  # noqa: E731
     start = a.start_tick
+    frame_s = 1.0 / (songconv.NTSC_FRAME if ntsc else songconv.PAL_FRAME)
+    fr = tick_frames(pw, ntsc, start, songconv.TOTAL_TICKS - start)
 
     t_sound = first_sound(samples, sr)
     if t_sound is None:
         print("FAIL: no sound in the capture")
         return 1
-    # The anchor is the first clean note after the start tick (never the start tick
-    # itself: clock_start / a jump fire that tick on the next frame and the following
-    # tick P-1 frames later, so the grid of all later ticks sits one frame earlier).
-    frame_s = 1.0 / (songconv.NTSC_FRAME if ntsc else songconv.PAL_FRAME)
+    # The anchor is the first clean note after the start tick (a note at the start tick
+    # of a jump build is re-triggered by music_seek, not a real onset).
     anchor = None
     for e in events:
         if e.voice == 2 or e.legato or e.gate < 4 or e.tick <= start:
             continue
-        earlier = sounding(events, {0, 1, 2} - {e.voice}, (e.tick - 2, e.tick + 2), started_before=e.tick)
-        if not masked(e.tones[0], earlier):
+        others = sounding(events, {0, 1, 2} - {e.voice}, (e.tick - 2, e.tick + 2))
+        if not masked(e.tones[0], others):
             anchor = e
             break
     if anchor is None:
         print("FAIL: no clean anchor note")
         return 1
-    offset = secs(anchor.tick) - secs(start) - frame_s
+    offset = fr[anchor.tick] * frame_s
     f_anchor = sid_hz(anchor.tones[0], ntsc)
-    onset, _ = find_onset(samples, sr, f_anchor, t_sound + offset - 0.10, t_sound + offset + 0.35)
+    onset, _ = find_onset(samples, sr, f_anchor, t_sound + offset - 0.10, t_sound + offset + 0.20)
     if onset is None:
         print(f"FAIL: anchor note {songconv.note_name(anchor.tones[0])} (tick {anchor.tick}) not found near {t_sound + offset:.3f}s")
         return 1
-    t0 = onset - secs(anchor.tick)          # file time of tick 0
+    t_start = onset - offset                # file time of the start tick's frame
+    expected = lambda tick: t_start + fr[tick] * frame_s  # noqa: E731
     print(f"{a.wav}: {duration:.1f}s, first sound {t_sound:.3f}s, anchor tick {anchor.tick} v{anchor.voice + 1} "
-          f"{songconv.note_name(anchor.tones[0])} at {onset:.3f}s -> tick 0 at {t0:.3f}s "
-          f"({'NTSC' if ntsc else 'PAL'})")
+          f"{songconv.note_name(anchor.tones[0])} at {onset:.3f}s -> tick {start} at {t_start:.3f}s "
+          f"({'NTSC' if ntsc else 'PAL'}, expected onsets from the clock's exact frame arithmetic)")
 
     # ---- probe selection: clean melody notes (+ some bass notes) spread over the file
     usable_end = duration - 0.5
@@ -180,7 +224,7 @@ def main(argv=None):
         if e.tick < (anchor.tick + 1):
             prev[e.voice] = e
             continue
-        t = t0 + secs(e.tick)
+        t = expected(e.tick)
         if t + 0.45 > usable_end:
             break
         p = prev.get(e.voice)
@@ -224,7 +268,7 @@ def main(argv=None):
             fails += 1
             continue
         err = onset - t_exp
-        errs.append((t_exp - t0, err))
+        errs.append((t_exp - t_start, err))
         s = int((onset + 0.02) * sr)
         n = int(win * sr)
         p0 = goertzel(samples, sr, f0, s, n)
@@ -245,13 +289,13 @@ def main(argv=None):
 
     # ---- calm chords (voice 3 arpeggio, gate >= 24 ticks): every tone present
     chords = [e for e in events if e.voice == 2 and e.gate >= 24 and e.tick > anchor.tick
-              and t0 + secs(e.tick + e.gate) < usable_end]
+              and expected(e.tick + e.gate) < usable_end]
     # The arpeggio plays each tone for 4 frames, and every return restarts the SID
     # oscillator at an arbitrary phase, so a long window sees sidebands rather than the
     # carrier: measure with one-segment windows and keep the best-aligned one.
     seg = 4 * frame_s - 0.005
     for e in chords[:4]:
-        t_lo = t0 + secs(e.tick) + 0.15
+        t_lo = expected(e.tick) + 0.15
         t_hi = t_lo + 3 * 4 * frame_s + 0.05          # one full arpeggio cycle
         res = []
         ok = True

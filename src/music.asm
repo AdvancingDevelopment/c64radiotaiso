@@ -284,7 +284,12 @@ music_frame:
         lda #0                  ; event, no drift; zp_tick restarts at 0)
         sta mus_wrap
         jsr clock_start_song
-.fx:    ; fall through: fx_hard_restart -> fx_melody -> fx_bass -> fx_arp -> rts
+.fx:
+!ifdef TEST_ENV3 {              ; test builds: voice 3's envelope (ENV3) once per
+        lda SID_BASE+$1c        ; frame into a write of the same read-only register,
+        sta SID_BASE+$1c        ; which VICE's "-sounddev dump" logs (the SID ignores it)
+}
+        ; fall through: fx_hard_restart -> fx_melody -> fx_bass -> fx_arp -> rts
 
 ; ---------------------------------------------------------------
 ; per-frame effects, chained: each one falls through to the next
