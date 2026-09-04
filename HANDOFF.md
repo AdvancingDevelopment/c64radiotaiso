@@ -163,6 +163,13 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (NTSC round 4): the scroll step (move/wrap/build) now runs in the bottom IRQ
+  (`scroller_move`); the main loop only loads glyphs for wrapped (off-screen) sprites. On NTSC
+  the main loop's frame work could spill past the scroller IRQ (line 229) once the voice NMI
+  and the figure were active, and the commit then mixed moved/unmoved positions. Note: VICE
+  screenshots in `-warp` (and even real time) do not show consecutive emulated frames, so
+  motion cannot be judged from `-exitscreenshot` sequences; use the HUD counters. `make run`
+  now passes `-soundsync 2` (exact) so VICE's flexible audio sync cannot stutter the display.
 - 2026-09-04 (NTSC round 3): the NTSC scroller flicker was the shin sprites (4/5) being
   crunched: their expansion bit had to flip in a 3-line window between the shin box ending
   (~233) and the scroller starting (237), which NMI latency missed. Fix in the generator: shin

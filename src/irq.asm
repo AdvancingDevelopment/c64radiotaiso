@@ -166,6 +166,7 @@ irq_bottom:
         inc zp_frame
         jsr clock_frame
         jsr music_frame
+        jsr scroller_move       ; scroll step + shadow build (atomic vs. the commit)
         jsr input_scan
         rts
 

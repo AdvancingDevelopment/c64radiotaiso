@@ -108,6 +108,7 @@ scroller_set_text:
         lda #1                  ; English first
         sta scr_mode
         jsr scr_load_string
+        sei                     ; the IRQ moves these every frame
         lda #<SCR_CUT_X0
         sta scr_x_lo
         lda #>SCR_CUT_X0
@@ -123,6 +124,13 @@ scroller_set_text:
         inx
         cpx #8
         bne -
+        ldx #7
+        lda #0
+-       sta scr_load_flag,x
+        dex
+        bpl -
+        jsr scr_build
+        cli
         lda #0
         sta scr_cur
 -       jsr scr_load_next
@@ -130,7 +138,7 @@ scroller_set_text:
         lda scr_cur
         cmp #8
         bne -
-        jmp scr_build
+        rts
 
 scroller_hide:
         lda #1
@@ -142,9 +150,14 @@ scroller_show:
         rts
 
 ; ---------------------------------------------------------------
-; main loop, once per frame: move, wrap + load, build the shadow
+; scroller_move — from the bottom IRQ (irq.asm), once per frame: move all
+; eight sprites, wrap the ones that left the screen (flag them for a
+; glyph load) and build the VIC shadow. Doing this in the IRQ keeps the
+; eight positions consistent: when the main loop did it, the scroller
+; IRQ could land mid-update (NTSC frames are short) and commit a mix of
+; moved and unmoved sprites — glyphs jittering by a pixel or two.
 ; ---------------------------------------------------------------
-scroller_frame:
+scroller_move:
         ldx #7
 .move:  sec
         lda scr_x_lo,x
@@ -164,9 +177,8 @@ scroller_frame:
         lda scr_x_hi,x
         adc #>SCR_WRAP_PX
         sta scr_x_hi,x
-        stx scr_cur
-        jsr scr_load_next
-        ldx scr_cur
+        lda #1
+        sta scr_load_flag,x     ; off-screen right now: main loop loads a glyph
 .next:  dex
         bpl .move
         ; fall through
@@ -205,6 +217,21 @@ scr_build:
         bpl .b
         rts
 bits8:  !byte 1,2,4,8,16,32,64,128
+
+; main loop, once per frame: load the next glyph into every sprite that
+; wrapped (it sits at X >= 360, invisible, so the slot rewrite never shows)
+scroller_frame:
+        ldx #7
+-       lda scr_load_flag,x
+        beq +
+        stx scr_cur
+        jsr scr_load_next
+        ldx scr_cur
+        lda #0
+        sta scr_load_flag,x
++       dex
+        bpl -
+        rts
 
 ; next queue cell -> slot of sprite scr_cur
 scr_load_next:
@@ -547,6 +574,7 @@ logo_sine: !for i, 0, 63 { !byte int(4.5 + 4.0 * sin(float(i) * 6.2831853 / 64.0
 scr_hidden:   !byte 1
 scr_x_lo:     !fill 8, 0        ; logical X, signed 16 bit
 scr_x_hi:     !fill 8, 0
+scr_load_flag: !fill 8, 0       ; set by scroller_move (IRQ), cleared by scroller_frame
 scr_vx:       !fill 8, 0        ; VIC X low bytes
 scr_ptr:      !fill 8, 0        ; sprite pointers (slot numbers)
 scr_msb:      !byte 0
