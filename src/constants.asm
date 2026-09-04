@@ -69,9 +69,8 @@ LINE_TOP        = 8             ; logo sprites, restore 25-row mode
 LINE_FIGURE     = 50            ; commit figure sprite block
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
 LINE_SCROLL_DEF = 219           ; earliest scroller line
-LINE_BORDER     = 249           ; switch to 24-row mode (opens the borders)
-LINE_BOTTOM     = 251           ; music / input / frame tick
-IRQ_ENTRIES     = 6
+LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
+IRQ_ENTRIES     = 5
 
 ; --- screen colours (hires char mode, any of 16 is legal) ---
 COL_BG          = 6             ; indigo

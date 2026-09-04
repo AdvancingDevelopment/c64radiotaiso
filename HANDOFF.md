@@ -41,8 +41,9 @@ $40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
 Raster IRQ chain (`irq.asm`, table `irq_lines`, ascending, all < 256):
 0 line 8 `irq_top` (25-row mode, `logo_commit`) · 1 line 50 `irq_figure` (`figure_commit`) ·
 2 split `irq_split` (`figure_split`) · 3 scroller line `irq_scroll` (`scroller_commit`) ·
-4 line 249 `irq_border` (24-row mode → borders stay open) · 5 line 251 `irq_bottom`
-(`clock_frame`, `music_frame`, `input_scan`, `inc zp_frame`).
+4 line 249 `irq_bottom` (24-row mode → borders stay open, then `clock_frame`, `music_frame`,
+`input_scan`, `inc zp_frame`). Late entries are acked before being run by hand; `$D011`
+read-modify-writes must mask bit 7 (raster MSB).
 `figure_render` rewrites `irq_lines+2` (split) and `irq_lines+3` (scroller line, ≥ 219, ≤ 246)
 each tick; they must stay ascending. Handlers run with A/X/Y saved by the dispatcher.
 

@@ -7,8 +7,13 @@
 ;   1 line 50   irq_figure   commit figure sprite block
 ;   2 split     irq_split    sprites 4/5 become the shins
 ;   3 scroller  irq_scroll   sprites 0-7 become the glyph scroller
-;   4 line 249  irq_border   24-row mode: the vertical border never closes
-;   5 line 251  irq_bottom   music, input, frame counter
+;   4 line 249  irq_bottom   24-row mode (the vertical border never closes),
+;                            then clock, music, input, frame counter
+; Rules learned the hard way: never write a $d011 value that carries the
+; current raster bit 8 (it becomes the compare MSB), and ack the raster
+; flag before running a late entry by hand — the VIC compares every
+; cycle, so writing a compare value equal to the current line raises the
+; flag immediately and would dispatch that entry twice.
 ; ---------------------------------------------------------------
 
 irq_init:                       ; call with interrupts disabled
@@ -63,8 +68,8 @@ irq_handler:
         cpx #0
         beq .done           ; entry 0 is next frame — no check
         cmp VIC_RASTER
-        bcc .dispatch       ; next line < current raster: late
-        beq .dispatch
+        bcc .late           ; next line <= current raster: run it now
+        beq .late
 .done:  pla
         tay
         pla
@@ -72,10 +77,14 @@ irq_handler:
         pla
         rti
 .call:  jmp (zp_irq_jmp)
+.late:  lda #1
+        sta VIC_IRQFLAG     ; ack the flag the compare write just raised
+        jmp .dispatch
 
 ; --- handlers -------------------------------------------------
 irq_top:
         lda VIC_CTRL1
+        and #$7f            ; never write raster bit 8 back
         ora #$08            ; 25-row mode again (top border compare)
         sta VIC_CTRL1
         jsr logo_commit
@@ -90,13 +99,10 @@ irq_split:
 irq_scroll:
         jmp scroller_commit
 
-irq_border:
-        lda VIC_CTRL1
-        and #$f7            ; 24-row mode: bottom compare (247) already passed
-        sta VIC_CTRL1
-        rts
-
 irq_bottom:
+        lda VIC_CTRL1
+        and #$77            ; 24-row mode (247 already passed); raster MSB clear
+        sta VIC_CTRL1
         inc zp_frame
         jsr clock_frame
         jsr music_frame
@@ -105,9 +111,9 @@ irq_bottom:
 
 ; NMI: digi player (digi.asm); before it exists, an acknowledging stub
 irq_idx:     !byte 0
-irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_SCROLL_DEF, LINE_BORDER, LINE_BOTTOM
-irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll, <irq_border, <irq_bottom
-irq_vec_hi:  !byte >irq_top, >irq_figure, >irq_split, >irq_scroll, >irq_border, >irq_bottom
+irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_SCROLL_DEF, LINE_BORDER
+irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll, <irq_bottom
+irq_vec_hi:  !byte >irq_top, >irq_figure, >irq_split, >irq_scroll, >irq_bottom
 !ifdef RASTER_DEBUG {
-irq_dbg_col: !byte 2, 5, 7, 4, 10, 1
+irq_dbg_col: !byte 2, 5, 7, 4, 10
 }
