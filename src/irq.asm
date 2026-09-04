@@ -63,19 +63,26 @@ irq_handler:
         cpx #0
         beq .done           ; entry 0 is next frame — no check
         cmp VIC_RASTER
-        bcc .dispatch       ; next line < current raster: late
-        beq .dispatch
+        bcc .late           ; next line < current raster: late
+        beq .late
 .done:  pla
         tay
         pla
         tax
         pla
         rti
+        ; a late entry: its raster compare may already have fired, so
+        ; ack it before running it inline — otherwise the pending IRQ
+        ; re-enters right after the rti (possibly at a raster >= 256)
+.late:  lda #1
+        sta VIC_IRQFLAG
+        jmp .dispatch
 .call:  jmp (zp_irq_jmp)
 
 ; --- handlers -------------------------------------------------
 irq_top:
         lda VIC_CTRL1
+        and #$7f            ; never copy raster bit 8 into the compare
         ora #$08            ; 25-row mode again (top border compare)
         sta VIC_CTRL1
         jsr logo_commit
@@ -92,8 +99,8 @@ irq_scroll:
 
 irq_border:
         lda VIC_CTRL1
-        and #$f7            ; 24-row mode: bottom compare (247) already passed
-        sta VIC_CTRL1
+        and #$77            ; 24-row mode: bottom compare (247) already passed
+        sta VIC_CTRL1       ; (bit 7 cleared: all compare lines are < 256)
         rts
 
 irq_bottom:
