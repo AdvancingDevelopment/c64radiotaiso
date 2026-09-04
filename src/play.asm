@@ -306,7 +306,10 @@ debug_hud:
         lda #0
         sta zp_x
         lda #24
-        sta zp_y
+        ldx zp_ntsc
+        beq +
+        lda #21                 ; NTSC: row 24 is under the scroller
++       sta zp_y
         jsr cell_ptr
         ldy #0
         lda zp_frame

@@ -6,8 +6,10 @@
 ;   0 line 8    irq_top      logo sprites, back to 25-row mode
 ;   1 line 50   irq_figure   commit figure sprite block
 ;   2 split     irq_split    sprites 4/5 become the shins
-;   3 scroller  irq_scroll   sprites 0-7 become the glyph scroller
-;   4 line 249  irq_bottom   24-row mode (the vertical border never closes),
+;   3 pre       irq_scroll_pre  sprites 0-3,6,7 become glyph sprites (they
+;                            finished their figure roles; line from the figure)
+;   4 scroller  irq_scroll   sprites 4/5 (after the shins) + shared regs
+;   5 line 249  irq_bottom   24-row mode (the vertical border never closes),
 ;                            then clock, music, input, frame counter
 ; Rules learned the hard way: never write a $d011 value that carries the
 ; current raster bit 8 (it becomes the compare MSB), and ack the raster
@@ -106,6 +108,9 @@ irq_figure:
 irq_split:
         jmp figure_split
 
+irq_scroll_pre:
+        jmp scroller_commit_pre
+
 irq_scroll:
 !ifdef DEBUG_HUD {
         lda VIC_RASTER          ; max raster seen at entry
@@ -131,6 +136,13 @@ irq_scroll:
         bcc -
         lda #0
         sta VIC_SPR_YEXP
+!ifdef DEBUG_HUD {
+        lda VIC_RASTER          ; NTSC: max raster after the expansion switch
+        cmp irq_max_c
+        bcc +
+        sta irq_max_c
++
+}
         rts
 +
         ; The 24-row switch that keeps the vertical border open must land in
@@ -178,9 +190,9 @@ irq_max_a: !byte 0
 irq_max_b: !byte 0
 irq_max_c: !byte 0
 }
-irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_SCROLL_PAL, LINE_BORDER
-irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll, <irq_bottom
-irq_vec_hi:  !byte >irq_top, >irq_figure, >irq_split, >irq_scroll, >irq_bottom
+irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_PRE_DEF, LINE_SCROLL_PAL, LINE_BORDER
+irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll_pre, <irq_scroll, <irq_bottom
+irq_vec_hi:  !byte >irq_top, >irq_figure, >irq_split, >irq_scroll_pre, >irq_scroll, >irq_bottom
 !ifdef RASTER_DEBUG {
-irq_dbg_col: !byte 2, 5, 7, 4, 10
+irq_dbg_col: !byte 2, 5, 7, 3, 4, 10
 }

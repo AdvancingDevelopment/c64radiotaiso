@@ -163,6 +163,13 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (NTSC round 6): NTSC counters with the voice on showed the scroller commit
+  starting as late as 234 and ending at 245 (> glyph Y 237) — the eight register sets take
+  up to 10 lines under NMI + badlines + sprite DMA, and the line itself moves with the knees.
+  The commit is now split: `scroller_commit_pre` (sprites 0-3,6,7) at `irq_lines+3`, the line
+  after the lowest of those figure boxes ended (figure computes it, ≥ LINE_PRE_MIN 196), and
+  `scroller_commit` (sprites 4/5 + shared regs) at `irq_lines+4`. Worst case now: start 229,
+  writes 231, switch 232 (NTSC), 233 (PAL). IRQ chain has 6 entries.
 - 2026-09-04 (voice balance): the music is filter-ducked under each word — `digi_start`
   routes all three voices through the low-pass at cutoff 0 (`digi_ducked`), `digi_unduck`
   (from `digi_stop` and `digi_frame` once the word ends) restores `FILT_RES` and `flt_cut`.

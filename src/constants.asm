@@ -77,7 +77,9 @@ SCR_Y_NTSC      = 237           ; NTSC: 21 px, glyph rows 237-252 (figure raised
                                 ; shins end by 233); fixed for the same reason
 SHIN_END_NTSC   = 228           ; NTSC: the shin boxes end by 227; expansion may change after
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
-IRQ_ENTRIES     = 5
+LINE_PRE_DEF    = 205           ; scroller pre-commit (sprites 0-3,6,7) default line
+LINE_PRE_MIN    = 196           ; never earlier than this
+IRQ_ENTRIES     = 6
 
 ; --- screen colours (hires char mode, any of 16 is legal) ---
 COL_BG          = 6             ; indigo

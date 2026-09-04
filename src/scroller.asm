@@ -397,28 +397,47 @@ scr_y_now: !byte SCR_Y_PAL
         lda #COL_BRASS
         sta VIC_SPR0_COL+.n
 }
-scroller_commit:
+; pre-commit (IRQ at irq_lines+3, set by the figure to the line after the
+; lowest of these six figure boxes ended): sprites 0-3, 6, 7 become glyph
+; sprites. Only a few stores are left for the late entry below.
+scroller_commit_pre:
         lda scr_hidden
         beq +
-        jmp .hide
-+       ; the shin sprites (4/5) may still be running when this IRQ fires:
-        ; the figure sets irq_lines+3 to max(shin box bottom + 1, 235), so
-        ; the glyphs start 6 lines below it (never above SCR_Y). Sprites 4/5
-        ; are written last, after the others (~3 raster lines in).
-        lda irq_lines+3
-        clc
-        adc #6
-        cmp scr_y_min           ; PAL 245 (border), NTSC 235 (inside the picture)
-        bcs +
-        lda scr_y_min
-+       sta scr_y_now
+        jmp .hide_pre
++       lda scr_y_min           ; PAL 247 (border), NTSC 237 (inside the picture)
+        sta scr_y_now
         +scr_set 0
         +scr_set 1
         +scr_set 2
         +scr_set 3
         +scr_set 6
         +scr_set 7
-        +scr_set 4
+        rts
+.hide_pre:
+        ldx #0
+-       lda #<350               ; park in the right border
+        sta VIC_SPR0_X,x
+        lda #SCR_PARK_Y
+        sta VIC_SPR0_X+1,x
+        inx
+        inx
+        cpx #8
+        bne -
+        lda #<350
+        sta VIC_SPR0_X+12
+        sta VIC_SPR0_X+14
+        lda #SCR_PARK_Y
+        sta VIC_SPR0_X+13
+        sta VIC_SPR0_X+15
+        rts
+
+; IRQ at irq_lines+4 (max(shin box top + 33, scroll_min_line)): sprites 4/5
+; after the shins have shown their last ink row, plus the shared registers.
+scroller_commit:
+        lda scr_hidden
+        beq +
+        jmp .hide
++       +scr_set 4
         +scr_set 5
         lda scr_msb
         sta VIC_SPR_MSB
@@ -428,18 +447,16 @@ scroller_commit:
         ldx zp_ntsc
         beq +
         ora #$30                ; NTSC: sprites 4/5 (shins) may still run — keep
-+       sta VIC_SPR_YEXP        ; their expansion; irq.asm clears it after line 234
++       sta VIC_SPR_YEXP        ; their expansion; irq.asm clears it after line 228
         lda #$ff
         sta VIC_SPR_ENABLE
         rts
-.hide:  ldy #14                 ; park all 8 in the right border (X 350)
--       lda #<350
-        sta VIC_SPR0_X,y
-        lda #SCR_PARK_Y         ; and at a Y no raster low byte matches
-        sta VIC_SPR0_X+1,y      ; before the logo sets it again at line 8
-        dey
-        dey
-        bpl -
+.hide:  lda #<350               ; park 4/5 too, and the shared registers
+        sta VIC_SPR0_X+8
+        sta VIC_SPR0_X+10
+        lda #SCR_PARK_Y
+        sta VIC_SPR0_X+9
+        sta VIC_SPR0_X+11
         lda #$ff
         sta VIC_SPR_MSB
         lda #0

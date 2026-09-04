@@ -47,6 +47,7 @@ B_SPTR      = 30
 B_SPLIT     = 32
 B_SCROLL    = 33
 B_EXP       = 34
+B_PRE       = 35                ; scroller pre-commit raster line
 
 SCROLL_ADD2 = 33                ; shin box: Y + 32 lines at 2x — the scroller glyph rows
                                 ; that replace the shin's blank tail (rows 16-20) are blank too
@@ -157,8 +158,10 @@ figure_hide:
         sta VIC_SPR_ENABLE
         lda #LINE_SPLIT_DEF
         sta irq_lines+2
-        lda scroll_min_line
+        lda #LINE_PRE_DEF
         sta irq_lines+3
+        lda scroll_min_line
+        sta irq_lines+4
         rts
 
 ; ---------------------------------------------------------------
@@ -276,6 +279,50 @@ figure_render:
         bcc +
         lda #246
 +       sta buf+B_SCROLL,x
+        ; pre-commit line for the scroller's other six sprites: the lowest
+        ; of their figure boxes has ended (Y + 42 at 2x, + 21 at 1x) — the
+        ; glyph writes for them can then happen well before the shins end
+        lda buf+1,x             ; Y of sprites 0,1,2,3,6,7
+        cmp buf+3,x
+        bcs +
+        lda buf+3,x
++       cmp buf+5,x
+        bcs +
+        lda buf+5,x
++       cmp buf+7,x
+        bcs +
+        lda buf+7,x
++       cmp buf+13,x
+        bcs +
+        lda buf+13,x
++       cmp buf+15,x
+        bcs +
+        lda buf+15,x
++       bit fig_1x
+        bmi +
+        clc
+        adc #43
+        bcs .precap             ; > 255: clamp below
+        jmp ++
++       clc
+        adc #22
+++      cmp #LINE_PRE_MIN
+        bcs +
+        lda #LINE_PRE_MIN
++       sec                     ; and at least 2 lines before the shin commit
+        sbc #2
+        cmp buf+B_SCROLL,x
+        bcc .preok
+.precap:
+        lda buf+B_SCROLL,x
+        sec
+        sbc #4
+        sta buf+B_PRE,x
+        jmp .predone
+.preok: clc
+        adc #2
+        sta buf+B_PRE,x
+.predone:
         ; publish
         stx buf_sel
         lda #1
@@ -360,11 +407,13 @@ figure_commit:
         sta VIC_SPR_MC
         lda #$ff
         sta VIC_SPR_ENABLE
-        ; this frame's split and scroller lines (ascending: 50 < split < scroller)
+        ; this frame's split, pre and scroller lines (ascending)
         lda buf+B_SPLIT,x
         sta irq_lines+2
-        lda buf+B_SCROLL,x
+        lda buf+B_PRE,x
         sta irq_lines+3
+        lda buf+B_SCROLL,x
+        sta irq_lines+4
         rts
 
 ; ---------------------------------------------------------------
