@@ -112,6 +112,12 @@ Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code),
 - `$D418` = sample | (`mus_d418` & $F0) while playing; restore `mus_d418` at the end.
 - Staged part ≤ 4608 bytes (STAGE_LIMIT), rest in `gen_digi2.asm`.
 
+## Play-state extras (play.asm)
+
+- `play_sec` / `play_min` (binary) = elapsed time, advanced per frame with `zp_ntsc`-aware fps.
+- `play_finish` (end of slot 13): sets `ANIM_BOW`, hides the scroller, jumps to `enter_finish`;
+  the main loop keeps calling `finish_tick` (choreo/figure/ui/digi housekeeping) in ST_FINISH.
+
 ## Status log
 
 - 2026-09-04: scaffold done — all-RAM init, vectors, IRQ chain with the border trick (verified:

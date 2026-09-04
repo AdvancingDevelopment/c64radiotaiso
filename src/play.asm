@@ -16,6 +16,9 @@ enter_play:
         sta zp_mv_flag
         sta zp_local_tick
         sta play_done
+        sta play_subsec
+        sta play_sec
+        sta play_min
         jsr ui_play_init        ; static layout + backdrop (ui/text modules)
         jsr figure_init
         jsr scroller_init
@@ -143,11 +146,12 @@ step_play:
         lda zp_cur_mv
         cmp #MV_SLOTS-1
         bcc +
-        jmp enter_finish
+        jmp play_finish
 +       jsr play_anim_for_slot
         jsr ui_movement         ; names, cue, stations, ray
 .no_mv:
 .no_tick:
+        jsr play_clock_frame
         jsr scroller_frame
         jsr ui_frame            ; prefetch step, pulses, clock display
         jsr digi_frame
@@ -206,6 +210,51 @@ play_speak_count:
         lda #DIGI_HAITE
         jmp digi_play
 .none:  rts
+
+; end of the routine: bow, then the finish screen (title.asm)
+play_finish:
+        lda #ANIM_BOW
+        jsr choreo_set_anim
+        jsr scroller_hide
+        jmp enter_finish
+
+; called every frame from the main loop in ST_FINISH before step_finish:
+; keeps the figure animating (bow) and the ui/digi housekeeping alive
+finish_tick:
+        lda zp_tick_flag
+        beq +
+        lda #0
+        sta zp_tick_flag
+        sta zp_beat_flag
+        lda zp_tick
+        and #63
+        sta zp_local_tick
+        jsr choreo_tick
+        jsr figure_render
++       jsr ui_frame
+        jmp digi_frame
+
+; elapsed time: play_sec/play_min (binary), advanced once per frame
+play_clock_frame:
+        inc play_subsec
+        lda play_subsec
+        ldx zp_ntsc
+        cmp play_fps,x
+        bcc +
+        lda #0
+        sta play_subsec
+        inc play_sec
+        lda play_sec
+        cmp #60
+        bcc +
+        lda #0
+        sta play_sec
+        inc play_min
++       rts
+play_fps:    !byte 50, 60
+play_subsec: !byte 0
+play_sec:    !byte 0
+play_min:    !byte 0
 
 play_quit:
         lda #0

@@ -73,7 +73,8 @@ main_loop:
         bne +
         jsr step_paused
         jmp main_loop
-+       jsr step_finish
++       jsr finish_tick
+        jsr step_finish
         jmp main_loop
 
 last_frame: !byte 0
