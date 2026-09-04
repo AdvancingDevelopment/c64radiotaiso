@@ -119,8 +119,24 @@ Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code),
 - `play_finish` (end of slot 13): sets `ANIM_BOW`, hides the scroller, jumps to `enter_finish`;
   the main loop keeps calling `finish_tick` (choreo/figure/ui/digi housekeeping) in ST_FINISH.
 
+## Memory budget (2026-09-04, integrated)
+
+code 10.6 KB / 11.7 KB (song 1 data lives here), stage 4.6 KB (digi part 1), frames 9.9 KB +
+backdrop in the VIC-bank spare, data 18.9 KB / 20 KB. Adding anything sizeable now means
+trimming: the 8×16 Latin scroller glyphs (704 B), the finish phrase sample (2 KB), pose head
+tilt frames. Keep `$7FFF` = 0.
+
 ## Status log
 
+- 2026-09-04 (later): all four subsystems merged (music, puppet + shin multiplex, UI/text/
+  scroller/logo/backdrop, digi voice). IRQ chain fixed (ack late dispatches, mask raster MSB,
+  border+bottom merged into one entry at 249). Verified in VICE: title with border logo, all 26
+  movement poses, free-running play screens (count block, kana/romaji, pips, sun flash,
+  scroller in the bottom border), pause overlay, NTSC play, finish screen after a full run
+  (3:08). Audio captures: songconv --check 0 mismatches; check_wav probes pass except for
+  repeated-pitch/masked probes (checker limitation); voice writes verified sample-exact by the
+  digi tool. Known nits: the elapsed clock keeps counting on the finish screen; the exit
+  screenshot is mid-frame (rows below the raster show the previous frame — not a tear).
 - 2026-09-04: scaffold done — all-RAM init, vectors, IRQ chain with the border trick (verified:
   side borders red, top/bottom zones blue), clock with PAL/NTSC period tables, play state
   skeleton, TEST_TICK/TEST_FREEZE/DEBUG_HUD builds verified (tick 456 → beat 57 count 2 mv 2;

@@ -2,3 +2,4 @@ build/
 tools/out/
 *.vsf
 .DS_Store
+__pycache__/
