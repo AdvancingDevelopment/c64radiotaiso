@@ -163,6 +163,10 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (voice balance): the music is filter-ducked under each word — `digi_start`
+  routes all three voices through the low-pass at cutoff 0 (`digi_ducked`), `digi_unduck`
+  (from `digi_stop` and `digi_frame` once the word ends) restores `FILT_RES` and `flt_cut`.
+  Captured envelope: the music's mid/high band falls to ~1/10 during a word.
 - 2026-09-04 (NTSC round 5): user test: flicker only with the voice on, and the voice was
   inaudible — VICE here defaults to reSID 8580 (4-bit $D418 digi ≈ -32 dBFS); `make run`
   now passes `-sidmodel 0`. The NMI stretched the scroller commit to the line where the

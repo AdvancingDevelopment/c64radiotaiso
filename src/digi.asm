@@ -86,6 +86,16 @@ digi_start:
         lda mus_d418
         and #$f0                ; keep the music's filter mode bits
         sta zp_digi_hi
+        ; duck the music under the voice: all three voices through the
+        ; low-pass filter with the cutoff at zero (the sample stream goes
+        ; straight to the output stage, so only the music gets quieter)
+        lda #(FILT_RES | $07)
+        sta SID_FILT_RES
+        lda #0
+        sta SID_FILT_LO
+        sta SID_FILT_HI
+        lda #1
+        sta digi_ducked
         lda #<nmi_lo
         sta VEC_NMI             ; first sample = low nibble
         lda #1
@@ -124,7 +134,18 @@ digi_stop:
         sta digi_next
         lda mus_d418
         sta SID_VOL             ; give $d418 back to the music
-        rts
+        ; fall through: restore the music's filter
+digi_unduck:
+        lda digi_ducked
+        beq +
+        lda #FILT_RES
+        sta SID_FILT_RES        ; the music's routing (voice 3 only)
+        lda flt_cut
+        sta SID_FILT_HI         ; and its current cutoff
+        lda #0
+        sta SID_FILT_LO
+        sta digi_ducked
++       rts
 
 digi_toggle:                    ; F5
         lda digi_enabled
@@ -144,7 +165,10 @@ digi_toggle:                    ; F5
 ; ---------------------------------------------------------------
 digi_frame:
         lda digi_playing
-        beq .idle
+        bne +
+        jsr digi_unduck         ; word over (NMI end path): music back up
+        jmp .idle
++
         lda zp_digi_cnt
         cmp zp_digi_last
         sta zp_digi_last
@@ -166,6 +190,7 @@ digi_frame:
         rts
 
 digi_enabled:   !byte 1
+digi_ducked:    !byte 0         ; music filter-ducked under a word
 digi_playing:   !byte 0
 digi_next:      !byte $ff       ; slot to chain at the end, $ff = none
 !ifdef TEST_DIGI {
