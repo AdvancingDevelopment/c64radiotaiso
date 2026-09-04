@@ -19,6 +19,10 @@ enter_play:
         sta play_subsec
         sta play_sec
         sta play_min
+!ifdef TEST_NOVOICE {
+        lda #0                  ; audio checks: music without the spoken counts
+        sta digi_enabled
+}
         jsr ui_play_init        ; static layout + backdrop (ui/text modules)
         jsr figure_init
         jsr scroller_init
