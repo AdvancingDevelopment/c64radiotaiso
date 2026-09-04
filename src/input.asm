@@ -132,13 +132,13 @@ input_scan:
         ldx #1
 -       lda keys_now,x
         and keys_prev,x     ; stable = now & previous raw
-        sta zp_tmp
+        sta zp_irq_tmp
         lda keys_stable,x
         eor #$ff
-        and zp_tmp          ; newly stable
+        and zp_irq_tmp      ; newly stable
         ora keys_new,x      ; accumulate until main consumes
         sta keys_new,x
-        lda zp_tmp
+        lda zp_irq_tmp
         sta keys_stable,x
         lda keys_now,x
         sta keys_prev,x
