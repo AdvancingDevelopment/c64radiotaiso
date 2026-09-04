@@ -112,6 +112,7 @@ detect_pal:
         sta fig_waist_y2
         lda waist1_tbl,x
         sta fig_waist_y1
+        stx ui_dy               ; NTSC: backdrop bottom + stations one row higher
         rts
 scroll_line_tbl: !byte LINE_SCROLL_PAL, LINE_SCROLL_NTSC
 scr_y_tbl:       !byte SCR_Y_PAL, SCR_Y_NTSC
@@ -123,3 +124,4 @@ scroll_min_line: !byte LINE_SCROLL_PAL
 scr_y_min:       !byte SCR_Y_PAL
 fig_waist_y2:    !byte FIG_WAIST_Y2
 fig_waist_y1:    !byte FIG_WAIST_Y1
+ui_dy:           !byte 0

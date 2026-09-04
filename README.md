@@ -26,8 +26,8 @@ Requirements: `acme`, `vice` (x64sc, c1541), `python3`, `node` (regenerating pos
 `~/taiso/node_modules/gsap`), `ffmpeg` + macOS `say` (regenerating the voice).
 
 Keys: `1`/`2` choose the routine (or joystick), `RETURN`/`SPACE`/fire start, `SPACE` pause,
-`S` figure size, `L` Japanese/English emphasis, `V` voice on/off, `1`–`5` tempo 80/90/100/110/
-120 %, `Q`/`RUN-STOP` back to the title. (Plain keys on purpose: function keys are awkward on
+`L` Japanese/English emphasis, `V` voice on/off, `1`–`5` tempo 80/90/100/110/120 %,
+`Q`/`RUN-STOP` back to the title. (Plain keys on purpose: function keys are awkward on
 Mac keyboards in VICE.)
 
 ## Regenerating the data

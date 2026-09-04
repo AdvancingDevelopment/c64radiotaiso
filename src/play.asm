@@ -67,13 +67,6 @@ step_play:
         sta keys_new
         jmp enter_pause
 +       lda keys_new+1
-        and #KEY_S              ; S: figure size
-        beq +
-        lda fig_scale
-        eor #1
-        sta fig_scale
-        jsr figure_set_scale
-+       lda keys_new+1
         and #KEY_L              ; L: language emphasis
         beq +
         jsr ui_toggle_lang

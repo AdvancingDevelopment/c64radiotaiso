@@ -50,7 +50,7 @@ txt_start:   !scr "return, space or fire: start", $ff
 txt_credit:  !byte $1b, $20      ; (c) glyph
              !scr "advancing development 2026", $ff
 txt_kofi:    !scr "buy me a coffee: ko-fi.com/advancing", $ff
-txt_tkeys:   !scr "space:pause  q:quit  s:size  v:voice", $ff
+txt_tkeys:   !scr "space:pause  q:quit  v:voice", $ff
 txt_pal:     !scr "pal", $ff
 txt_ntsc:    !scr "ntsc", $ff
 sel_row:     !byte TITLE_ROW_SEL1, TITLE_ROW_SEL2
@@ -84,7 +84,7 @@ enter_title:
         +print 13,  6, txt_t64,    COL_BRASS
         +print  5,  7, txt_songs,  COL_DIM
         +print  6, 16, txt_start,  COL_GREY
-        +print  2, 21, txt_tkeys,  COL_DIM
+        +print  6, 21, txt_tkeys,  COL_DIM
         +print  4, 22, txt_help2,  COL_DIM
         +print  6, 23, txt_credit, COL_GREY
         +print  2, 24, txt_kofi,   COL_BRASS

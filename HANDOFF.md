@@ -83,8 +83,9 @@ per beat `ui_beat` + spoken count; per movement `choreo_set_anim` + `ui_movement
 `mv_anim_r1/r2`, timeline ids 0..19 documented there).
 
 Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code), `keys_stable`.
-Bindings: 1/2 routine (title) or tempo 80/90 % (play), 3/4/5 tempo 100/110/120 %, S size,
-L language, V voice, SPACE pause, Q / RUN-STOP title, RETURN start — no function keys.
+Bindings: 1/2 routine (title) or tempo 80/90 % (play), 3/4/5 tempo 100/110/120 %, L language,
+V voice, SPACE pause, Q / RUN-STOP title, RETURN start — no function keys (the 1x size toggle
+was removed at the user's request; `figure_set_scale` still exists).
 
 ## Module contracts (each module owns its files; do not edit others' files)
 
@@ -162,6 +163,8 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (NTSC round 2): NTSC horizon/sun/rays/stations one row higher (`ui_dy`) so the
+  raised figure stands on the horizon; size key removed; finish screen clears the NTSC hint.
 - 2026-09-04 (NTSC round): PAL/NTSC layout values are chosen at boot (`scroll_min_line`,
   `scr_y_min` in init.asm): NTSC scroller line 229 / glyph Y 235 (rows 23-24, inside the
   200-line picture, unexpanded), no border wait on NTSC, key hint on row 22 (`ui_ntsc_help`).

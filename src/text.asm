@@ -46,7 +46,17 @@ AREA_A_CODE     = $80           ; charset codes of area A (B = $c0)
 AREA_B_HI       = >(CHARSET + $c0*8)   ; $4e: page of area B bitmaps
 AREA_C_ADDR     = CHARSET + $70*8
 BD_TILES_ADDR   = CHARSET + $50*8
-ST_COL_ADDR     = COLOR_RAM + UI_ROW_STATIONS*40 + UI_COL_STATION0 - 2  ; + 2*mv
+ST_COL_ADDR     = COLOR_RAM + UI_ROW_STATIONS*40 + UI_COL_STATION0 - 2  ; + 2*mv (PAL)
+; NTSC: the horizon, sun, rays and stations sit one row higher (ui_dy = 1)
+; so the figure (8 px higher there) still stands on the horizon line
+!macro st_col_store {           ; A = colour, X = 2*mv
+        ldy ui_dy
+        bne +
+        sta ST_COL_ADDR,x
+        jmp ++
++       sta ST_COL_ADDR-40,x
+++
+}
 
 ; ---------------------------------------------------------------
 ; hooks
@@ -171,7 +181,7 @@ ui_beat:
         asl
         tax
         lda #COL_TEXT
-        sta ST_COL_ADDR,x
+        +st_col_store
         lda #6
         sta pulse_t
 +       rts
@@ -230,7 +240,7 @@ ui_frame:
         asl
         tax
         lda #COL_VERMILLION
-        sta ST_COL_ADDR,x
+        +st_col_store
 +
 !ifdef TEST_SCRDBG {            ; row 23: scr_idx mode n pos pending x1
         lda #0
@@ -325,7 +335,7 @@ ui_toggle_lang:
 ui_pause_show:
         jsr scroller_hide
         +print 17, 22, txt_paused, COL_BRASS
-        +print  2, 23, txt_help1, COL_DIM
+        +print  6, 23, txt_help1, COL_DIM
         +print  5, 24, txt_help2, COL_DIM
         rts
 ui_pause_hide:
@@ -345,13 +355,17 @@ ui_ntsc_help:
 +       rts
 txt_ntsc_help: !scr "space:pause  v:voice  1-5:tempo  q:quit", $ff
 txt_paused: !scr "paused", $ff
-txt_help1:  !scr "space:resume  q:quit  s:size  v:voice", $ff
+txt_help1:  !scr "space:resume  q:quit  v:voice", $ff
 txt_help2:  !scr "l:language  1-5:tempo 80-120%", $ff
 
 ; finish screen texts (called by title.asm's enter_finish)
 ui_finish:
         lda #MV_SLOTS-1
         sta zp_cur_mv
+        lda #22                 ; NTSC key hint row: not valid on the finish screen
+        sta zp_y
+        lda #1
+        jsr rows_clear
         jsr ui_row1             ; "well done!"
         jsr jp_show             ; お疲れさまでした
         jsr stations_draw       ; all done -> brass
@@ -902,6 +916,8 @@ txt_set: !scr "set ", $ff
 ; row 21: 13 stations, done / current / upcoming from zp_cur_mv
 stations_draw:
         lda #UI_ROW_STATIONS
+        sec
+        sbc ui_dy
         sta zp_y
         lda #UI_COL_STATION0
         sta zp_x
@@ -942,6 +958,8 @@ ray_paint:
         sta zp_ucnt
         iny
 .cell:  lda (zp_ustr),y
+        sec
+        sbc ui_dy               ; NTSC: one row up
         sta zp_y
         iny
         lda (zp_ustr),y
@@ -950,6 +968,9 @@ ray_paint:
         lda (zp_ustr),y
         iny
         sty zp_utmp
+        ldx zp_y
+        cpx #4                  ; the top ray row would hit the name rows
+        bcc .skip
         pha
         jsr cell_ptr
         pla
@@ -957,7 +978,7 @@ ray_paint:
         sta (zp_ptr),y
         lda zp_ucol
         sta (zp_ptr2),y
-        ldy zp_utmp
+.skip:  ldy zp_utmp
         dec zp_ucnt
         bne .cell
         rts
@@ -983,6 +1004,8 @@ rays_update:
 sun_colour:
         sta zp_ucol
         lda #17
+        sec
+        sbc ui_dy
         sta zp_y
 .r:     lda #16
         sta zp_x
@@ -994,6 +1017,8 @@ sun_colour:
         bpl -
         inc zp_y
         lda zp_y
+        clc
+        adc ui_dy
         cmp #21
         bne .r
         rts
@@ -1007,6 +1032,8 @@ bd_draw:
         cpx #BD_TILE_COUNT*8
         bne -
         lda #20
+        sec
+        sbc ui_dy
         sta zp_y
         lda #0
         sta zp_x
@@ -1019,6 +1046,8 @@ bd_draw:
         dey
         bpl -
         lda #17
+        sec
+        sbc ui_dy
         sta zp_y
         lda #0
         sta zp_utmp2
@@ -1037,6 +1066,8 @@ bd_draw:
         bne .scol
         inc zp_y
         lda zp_y
+        clc
+        adc ui_dy
         cmp #21
         bne .srow
         ldx #0
