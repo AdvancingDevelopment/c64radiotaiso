@@ -163,6 +163,9 @@ step_play:
 !ifdef DEBUG_HUD {
         jsr debug_hud
 }
+!ifdef TEST_SLOTDUMP {
+        jsr slot_dump
+}
         rts
 
 ; advance zp_cur_mv while tick >= start of the next slot
@@ -338,6 +341,53 @@ debug_hud:
         lda clock_period
         jsr put_hex
         rts
+!ifdef TEST_SLOTDUMP {
+; row 22: for scroller slots 16..23, bytes 0 of rows 4 and 8 (hex)
+slot_dump:
+        lda #0
+        sta zp_x
+        lda #22
+        sta zp_y
+        jsr cell_ptr
+        ldy #0
+        ldx #0
+-       lda DYN_SLOTS+4*3,x     ; row 4 byte 0 of slot 16 + x/64
+        jsr put_hex
+        lda DYN_SLOTS+8*3,x
+        jsr put_hex
+        iny
+        txa
+        clc
+        adc #64
+        tax
+        bne -
+        ; row 21 (over the stations): sprite pointers 0-7, split, scroller line, y
+        lda #0
+        sta zp_x
+        lda #21
+        sta zp_y
+        jsr cell_ptr
+        ldy #0
+        ldx #0
+-       lda SPR_PTRS,x
+        jsr put_hex
+        inx
+        cpx #8
+        bne -
+        iny
+        lda irq_lines+2
+        jsr put_hex
+        lda irq_lines+3
+        jsr put_hex
+        iny
+        lda scr_y_now
+        jsr put_hex
+        lda VIC_SPR0_X+1
+        jsr put_hex
+        lda VIC_SPR0_X+3
+        jsr put_hex
+        rts
+}
 put_hex:
         pha
         lsr

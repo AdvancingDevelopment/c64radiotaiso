@@ -28,7 +28,7 @@
 ; ---------------------------------------------------------------
 
 SCR_SPEED       = 2             ; px per frame (tunable)
-SCR_Y           = 226
+SCR_Y           = 245           ; 6 lines under the IRQ line: 8 sprite writes take ~2.5 lines
 SCR_WRAP_PX     = 384           ; 8 sprites * 48 px
 SCR_PARK_Y      = 60            ; hidden sprites: Y that matches no line in
                                 ; 219..311/0..8 (PAL lines 256+ have low bytes
@@ -331,11 +331,12 @@ scroller_commit:
         lda scr_hidden
         bne .hide
         ; the shin sprites (4/5) may still be running when this IRQ fires:
-        ; the figure sets irq_lines+3 to their box bottom + 1, so the glyphs
-        ; start 2 lines below the current raster (never above SCR_Y)
+        ; the figure sets irq_lines+3 to max(shin box bottom + 1, 239), so
+        ; the glyphs start 6 lines below it (never above SCR_Y): the eight
+        ; register sets take ~2.5 raster lines to write, plus NMI latency
         lda irq_lines+3
         clc
-        adc #2
+        adc #6
         cmp #SCR_Y
         bcs +
         lda #SCR_Y

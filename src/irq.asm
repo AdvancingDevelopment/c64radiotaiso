@@ -66,8 +66,18 @@ irq_handler:
         sta VIC_RASTER
         ; if that line has already passed (a late handler), run it now
         cpx #0
-        beq .done           ; entry 0 is next frame — no check
-        cmp VIC_RASTER
+        bne +
+        ; entry 0 belongs to the next frame: late only if the raster has
+        ; already wrapped past LINE_TOP (bottom IRQ overran the frame end)
+        bit VIC_CTRL1
+        bmi .done           ; raster bit 8: still in lines 256+ of this frame
+        lda VIC_RASTER
+        cmp #LINE_TOP
+        bcc .done           ; new frame, before line 8: on time
+        cmp #LINE_BORDER
+        bcs .done           ; this frame, lines 249..255
+        bcc .late           ; wrapped past line 8: run it now
++       cmp VIC_RASTER
         bcc .late           ; next line <= current raster: run it now
         beq .late
 .done:  pla
