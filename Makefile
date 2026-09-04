@@ -15,8 +15,10 @@ build/taiso.prg: $(SRC)
 
 # VICE 3.10: host vsync on, a large sound buffer so the audio side never has to stretch
 # the stream (a small buffer under the 5 kHz digi load can make VICE duplicate/drop displayed
-# frames, which shows up as scrolling-text stutter on the host — not on real hardware)
-VICEOPTS ?= -VICIIvsync -soundbufsize 150 -soundfragsize 3
+# frames, which shows up as scrolling-text stutter on the host — not on real hardware).
+# -sidmodel 0 = 6581: VICE defaults to the 8580 here, on which the 4-bit voice is nearly
+# silent (use -sidmodel 2 for "8580 + digiboost" instead if you prefer the 8580 sound)
+VICEOPTS ?= -VICIIvsync -soundbufsize 150 -soundfragsize 3 -sidmodel 0
 
 run: build/taiso.prg
 	$(X64SC) $(VICEOPTS) -autostartprgmode 1 build/taiso.prg

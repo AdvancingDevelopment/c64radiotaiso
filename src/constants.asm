@@ -68,13 +68,14 @@ VIC_MEMPTR_VAL  = $02           ; screen at bank+$0000, charset at bank+$0800
 LINE_TOP        = 8             ; logo sprites, restore 25-row mode
 LINE_FIGURE     = 66            ; commit figure sprite block (after the logo's last line 59)
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
-LINE_SCROLL_PAL = 235           ; scroller IRQ line (sprites 4/5 written last, after the shins)
-LINE_SCROLL_NTSC = 229          ; NTSC: the scroller must stay inside the 200-line picture
+LINE_SCROLL_PAL = 228           ; scroller IRQ line (sprites 4/5 written last; shin ink done by box+32)
+LINE_SCROLL_NTSC = 218          ; NTSC: early enough that the writes end well before Y 237 even
+                                ; when the digi NMI stretches them (~7 lines)
 SCR_Y_PAL       = 247           ; scroller glyph Y (Y-expanded, into the open bottom border);
                                 ; fixed: >= every possible scroller line + 6, so no jitter
 SCR_Y_NTSC      = 237           ; NTSC: 21 px, glyph rows 237-252 (figure raised 8 px so the
                                 ; shins end by 233); fixed for the same reason
-SHIN_END_NTSC   = 234           ; NTSC: line after which sprites 4/5 may change expansion
+SHIN_END_NTSC   = 228           ; NTSC: the shin boxes end by 227; expansion may change after
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
 IRQ_ENTRIES     = 5
 

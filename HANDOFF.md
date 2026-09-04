@@ -163,6 +163,10 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (NTSC round 5): user test: flicker only with the voice on, and the voice was
+  inaudible — VICE here defaults to reSID 8580 (4-bit $D418 digi ≈ -32 dBFS); `make run`
+  now passes `-sidmodel 0`. The NMI stretched the scroller commit to the line where the
+  glyphs start (NTSC): scroller IRQ moved to 218 (NTSC) / 228 (PAL), SHIN_END_NTSC 228.
 - 2026-09-04 (NTSC round 4): the scroll step (move/wrap/build) now runs in the bottom IRQ
   (`scroller_move`); the main loop only loads glyphs for wrapped (off-screen) sprites. On NTSC
   the main loop's frame work could spill past the scroller IRQ (line 229) once the voice NMI
