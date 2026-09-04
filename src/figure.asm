@@ -185,10 +185,10 @@ figure_render:
         cmp #$80                ; 1x: halve, keeping the sign
         ror
         clc
-        adc #FIG_WAIST_Y1
+        adc fig_waist_y1        ; PAL/NTSC values chosen at boot (init.asm)
         jmp ++
 +       clc
-        adc #FIG_WAIST_Y2
+        adc fig_waist_y2
 ++      sta zp_wy
         lda #0
         sta buf+B_MSB,x

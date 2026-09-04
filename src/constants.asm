@@ -70,8 +70,11 @@ LINE_FIGURE     = 66            ; commit figure sprite block (after the logo's l
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
 LINE_SCROLL_PAL = 235           ; scroller IRQ line (sprites 4/5 written last, after the shins)
 LINE_SCROLL_NTSC = 229          ; NTSC: the scroller must stay inside the 200-line picture
-SCR_Y_PAL       = 245           ; scroller glyph Y (Y-expanded, into the open bottom border)
-SCR_Y_NTSC      = 235           ; NTSC: 21 px, rows 23-24, ends at line 255 worst case
+SCR_Y_PAL       = 247           ; scroller glyph Y (Y-expanded, into the open bottom border);
+                                ; fixed: >= every possible scroller line + 6, so no jitter
+SCR_Y_NTSC      = 237           ; NTSC: 21 px, glyph rows 237-252 (figure raised 8 px so the
+                                ; shins end by 233); fixed for the same reason
+SHIN_END_NTSC   = 234           ; NTSC: line after which sprites 4/5 may change expansion
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
 IRQ_ENTRIES     = 5
 

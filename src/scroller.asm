@@ -398,7 +398,10 @@ scroller_commit:
         lda scr_xexp
         sta VIC_SPR_XEXP
         lda scr_yexp
-        sta VIC_SPR_YEXP
+        ldx zp_ntsc
+        beq +
+        ora #$30                ; NTSC: sprites 4/5 (shins) may still run — keep
++       sta VIC_SPR_YEXP        ; their expansion; irq.asm clears it after line 234
         lda #$ff
         sta VIC_SPR_ENABLE
         rts

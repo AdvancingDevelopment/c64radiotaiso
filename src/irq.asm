@@ -124,7 +124,14 @@ irq_scroll:
 }
         lda zp_ntsc
         beq +
-        rts                     ; NTSC: no border to open, no wait
+        ; NTSC: no border to open. Clearing Y-expansion while the shin
+        ; sprites (4/5) still run would crunch them, so wait for their end
+-       lda VIC_RASTER
+        cmp #SHIN_END_NTSC+1
+        bcc -
+        lda #0
+        sta VIC_SPR_YEXP
+        rts
 +
         ; The 24-row switch that keeps the vertical border open must land in
         ; lines 248-251 (after the 24-row bottom compare at 247, before the

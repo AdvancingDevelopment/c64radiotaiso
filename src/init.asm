@@ -108,8 +108,18 @@ detect_pal:
         sta scroll_min_line
         lda scr_y_tbl,x
         sta scr_y_min
+        lda waist2_tbl,x
+        sta fig_waist_y2
+        lda waist1_tbl,x
+        sta fig_waist_y1
         rts
 scroll_line_tbl: !byte LINE_SCROLL_PAL, LINE_SCROLL_NTSC
 scr_y_tbl:       !byte SCR_Y_PAL, SCR_Y_NTSC
+; NTSC has no visible bottom border: the figure stands 8 px higher so the
+; shin sprites finish before the (in-picture) scroller line
+waist2_tbl:      !byte FIG_WAIST_Y2, FIG_WAIST_Y2-8
+waist1_tbl:      !byte FIG_WAIST_Y1, FIG_WAIST_Y1-8
 scroll_min_line: !byte LINE_SCROLL_PAL
 scr_y_min:       !byte SCR_Y_PAL
+fig_waist_y2:    !byte FIG_WAIST_Y2
+fig_waist_y1:    !byte FIG_WAIST_Y1
