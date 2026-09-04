@@ -66,7 +66,7 @@ VIC_MEMPTR_VAL  = $02           ; screen at bank+$0000, charset at bank+$0800
 
 ; --- raster chain ---
 LINE_TOP        = 8             ; logo sprites, restore 25-row mode
-LINE_FIGURE     = 50            ; commit figure sprite block
+LINE_FIGURE     = 66            ; commit figure sprite block (after the logo's last line 59)
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
 LINE_SCROLL_DEF = 235           ; scroller IRQ line (sprites 4/5 written last, after the shins)
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
@@ -91,19 +91,20 @@ ST_PAUSED       = 2
 ST_FINISH       = 3
 
 ; --- key bits (keys_now / keys_new, low byte then high byte) ---
-KEY_1           = %00000001
-KEY_2           = %00000010
-KEY_SPACE       = %00000100
-KEY_Q           = %00001000
-KEY_STOP        = %00010000
-KEY_RETURN      = %00100000
-KEY_F7          = %01000000
-KEY_F1          = %10000000
+; plain keys only (F-keys are awkward on Mac keyboards / VICE)
+KEY_1           = %00000001     ; title: routine 1;  play: tempo 80 %
+KEY_2           = %00000010     ; title: routine 2;  play: tempo 90 %
+KEY_SPACE       = %00000100     ; pause / resume, start
+KEY_Q           = %00001000     ; back to the title
+KEY_STOP        = %00010000     ; RUN/STOP = same as Q
+KEY_RETURN      = %00100000     ; start
+KEY_3           = %01000000     ; tempo 100 %
+KEY_4           = %10000000     ; tempo 110 %
 ; high byte
-KEY_F3          = %00000001
-KEY_F5          = %00000010
-KEY_PLUS        = %00000100
-KEY_MINUS       = %00001000
+KEY_5           = %00000001     ; tempo 120 %
+KEY_S           = %00000010     ; figure size 2x / 1x
+KEY_L           = %00000100     ; language emphasis
+KEY_V           = %00001000     ; voice on / off
 JOY_FIRE        = %00010000
 JOY_UP          = %00100000
 JOY_DOWN        = %01000000

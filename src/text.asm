@@ -324,8 +324,8 @@ ui_toggle_lang:
 ui_pause_show:
         jsr scroller_hide
         +print 17, 22, txt_paused, COL_BRASS
-        +print  5, 23, txt_help1, COL_DIM
-        +print  6, 24, txt_help2, COL_DIM
+        +print  2, 23, txt_help1, COL_DIM
+        +print  5, 24, txt_help2, COL_DIM
         rts
 ui_pause_hide:
         lda #22
@@ -334,8 +334,8 @@ ui_pause_hide:
         jsr rows_clear
         jmp scroller_show
 txt_paused: !scr "paused", $ff
-txt_help1:  !scr "space:resume  q:quit  f1:size", $ff
-txt_help2:  !scr "f3:lang  f5:voice  +/-:tempo", $ff
+txt_help1:  !scr "space:resume  q:quit  s:size  v:voice", $ff
+txt_help2:  !scr "l:language  1-5:tempo 80-120%", $ff
 
 ; finish screen texts (called by title.asm's enter_finish)
 ui_finish:

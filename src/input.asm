@@ -1,7 +1,7 @@
 !zone input
 ; ---------------------------------------------------------------
-; input.asm — joystick port 2 + the few keys we need, scanned from
-; the bottom IRQ. Produces 16-bit key masks (see constants.asm):
+; input.asm — joystick port 2 + the plain keys we need (1-5, S, L, V,
+; SPACE, Q, RUN/STOP, RETURN), scanned from the bottom IRQ. Produces 16-bit key masks (see constants.asm):
 ;   keys_now     raw state this frame
 ;   keys_stable  debounced (held two consecutive frames)
 ;   keys_new     press edges of the debounced state (main clears)
@@ -41,91 +41,50 @@ input_scan:
 +       jmp .debounce
 
 .keyboard:
-        lda #%01111111      ; PA7: 1(r0) 2(r3) SPACE(r4) Q(r6) STOP(r7)
-        sta CIA1_PRA
-        lda CIA1_PRB
-        eor #$ff
-        tax                 ; 1 = pressed
-        and #$01
-        beq +
-        lda #KEY_1
-        ora keys_now
-        sta keys_now
-+       txa
-        and #$08
-        beq +
-        lda #KEY_2
-        ora keys_now
-        sta keys_now
-+       txa
-        and #$10
-        beq +
-        lda #KEY_SPACE
-        ora keys_now
-        sta keys_now
-+       txa
-        and #$40
-        beq +
-        lda #KEY_Q
-        ora keys_now
-        sta keys_now
-+       txa
-        and #$80
-        beq +
-        lda #KEY_STOP
-        ora keys_now
-        sta keys_now
-+       lda #%11111110      ; PA0: RETURN(r1) F7(r3) F1(r4) F3(r5) F5(r6)
+!macro key_col .mask {          ; select column .mask, A = pressed rows (1 = down)
+        lda #.mask
         sta CIA1_PRA
         lda CIA1_PRB
         eor #$ff
         tax
-        and #$02
+}
+!macro key_lo .rowbit, .keybit { ; row bit -> key bit in keys_now (X = pressed rows)
+        txa
+        and #.rowbit
         beq +
-        lda #KEY_RETURN
-        ora keys_now
+        lda keys_now
+        ora #.keybit
         sta keys_now
-+       txa
-        and #$08
++
+}
+!macro key_hi .rowbit, .keybit {
+        txa
+        and #.rowbit
         beq +
-        lda #KEY_F7
-        ora keys_now
-        sta keys_now
-+       txa
-        and #$10
-        beq +
-        lda #KEY_F1
-        ora keys_now
-        sta keys_now
-+       txa
-        and #$20
-        beq +
-        lda #KEY_F3
-        ora keys_now+1
+        lda keys_now+1
+        ora #.keybit
         sta keys_now+1
-+       txa
-        and #$40
-        beq +
-        lda #KEY_F5
-        ora keys_now+1
-        sta keys_now+1
-+       lda #%11011111      ; PA5: +(r0) -(r3)
-        sta CIA1_PRA
-        lda CIA1_PRB
-        eor #$ff
-        tax
-        and #$01
-        beq +
-        lda #KEY_PLUS
-        ora keys_now+1
-        sta keys_now+1
-+       txa
-        and #$08
-        beq +
-        lda #KEY_MINUS
-        ora keys_now+1
-        sta keys_now+1
-+       lda #$ff
++
+}
+        +key_col %01111111      ; PA7: 1(r0) 2(r3) SPACE(r4) Q(r6) STOP(r7)
+        +key_lo $01, KEY_1
+        +key_lo $08, KEY_2
+        +key_lo $10, KEY_SPACE
+        +key_lo $40, KEY_Q
+        +key_lo $80, KEY_STOP
+        +key_col %11111110      ; PA0: RETURN(r1)
+        +key_lo $02, KEY_RETURN
+        +key_col %11111101      ; PA1: 3(r0) 4(r3) S(r5)
+        +key_lo $01, KEY_3
+        +key_lo $08, KEY_4
+        +key_hi $20, KEY_S
+        +key_col %11111011      ; PA2: 5(r0)
+        +key_hi $01, KEY_5
+        +key_col %11110111      ; PA3: V(r7)
+        +key_hi $80, KEY_V
+        +key_col %11011111      ; PA5: L(r2)
+        +key_hi $04, KEY_L
+        lda #$ff
         sta CIA1_PRA
 
 .debounce:

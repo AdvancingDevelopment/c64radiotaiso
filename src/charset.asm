@@ -49,8 +49,9 @@ charset_start:
 !byte $cc,$cc,$cc,$78,$30,$30,$30,$00  ; Y
 !byte $fc,$0c,$18,$30,$60,$c0,$fc,$00  ; Z
 
-; $1b-$1f unused
-!fill 5 * 8, 0
+; $1b: (c) copyright sign;  $1c-$1f unused
+!byte $3c,$42,$99,$a1,$a1,$99,$42,$3c
+!fill 4 * 8, 0
 
 ; $20: blank (playfield empty cell)
 !fill 8, 0

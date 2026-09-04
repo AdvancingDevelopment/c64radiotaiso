@@ -66,46 +66,43 @@ step_play:
         lda #0
         sta keys_new
         jmp enter_pause
-+       lda keys_new
-        and #KEY_F1
++       lda keys_new+1
+        and #KEY_S              ; S: figure size
         beq +
         lda fig_scale
         eor #1
         sta fig_scale
         jsr figure_set_scale
 +       lda keys_new+1
-        and #KEY_F3
+        and #KEY_L              ; L: language emphasis
         beq +
         jsr ui_toggle_lang
 +       lda keys_new+1
-        and #KEY_F5
+        and #KEY_V              ; V: voice on / off
         beq +
         jsr digi_toggle
-+       lda keys_new+1
-        and #KEY_PLUS
++       ; 1..5: tempo 80 / 90 / 100 / 110 / 120 %
+        ldx #0
+        lda keys_new
+        and #KEY_1
+        bne .tempo
+        inx
+        lda keys_new
+        and #KEY_2
+        bne .tempo
+        inx
+        lda keys_new
+        and #KEY_3
+        bne .tempo
+        inx
+        lda keys_new
+        and #KEY_4
+        bne .tempo
+        inx
+        lda keys_new+1
+        and #KEY_5
         beq +
-        lda clock_tempo
-        cmp #4
-        bcs +
-        adc #1
-        jsr clock_set_tempo
-        jsr ui_tempo
-+       lda keys_new+1
-        and #KEY_MINUS
-        beq +
-        lda clock_tempo
-        beq +
-        sec
-        sbc #1
-        jsr clock_set_tempo
-        jsr ui_tempo
-+       lda keys_new
-        and #KEY_F7
-        beq +
-        lda clock_tempo
-        beq +
-        sec
-        sbc #1
+.tempo: txa
         jsr clock_set_tempo
         jsr ui_tempo
 +       lda #0

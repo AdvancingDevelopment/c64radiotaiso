@@ -83,6 +83,8 @@ per beat `ui_beat` + spoken count; per movement `choreo_set_anim` + `ui_movement
 `mv_anim_r1/r2`, timeline ids 0..19 documented there).
 
 Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code), `keys_stable`.
+Bindings: 1/2 routine (title) or tempo 80/90 % (play), 3/4/5 tempo 100/110/120 %, S size,
+L language, V voice, SPACE pause, Q / RUN-STOP title, RETURN start — no function keys.
 
 ## Module contracts (each module owns its files; do not edit others' files)
 
@@ -160,6 +162,11 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (feedback round): (c) glyph ($1b) + ko-fi line on the title; F-keys replaced by
+  S/L/V and 1-5 tempo; figure commit moved to line 66 (the logo's last rows were being
+  re-pointed to figure frames at line 50 → fragments in rows 0-1); hidden scroller sprites now
+  park at Y 250 (parking at Y 60 made the figure commit re-point running sprites → ghost in
+  rows 2-5 while paused); `scroller_set_text` cuts to the new cue immediately, English first.
 - 2026-09-04 (later): all four subsystems merged (music, puppet + shin multiplex, UI/text/
   scroller/logo/backdrop, digi voice). IRQ chain fixed (ack late dispatches, mask raster MSB,
   border+bottom merged into one entry at 249). Verified in VICE: title with border logo, all 26

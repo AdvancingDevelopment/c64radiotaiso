@@ -30,9 +30,9 @@
 SCR_SPEED       = 2             ; px per frame (tunable)
 SCR_Y           = 245           ; 6 lines under the IRQ line: 8 sprite writes take ~2.5 lines
 SCR_WRAP_PX     = 384           ; 8 sprites * 48 px
-SCR_PARK_Y      = 60            ; hidden sprites: Y that matches no line in
-                                ; 219..311/0..8 (PAL lines 256+ have low bytes
-                                ; 0..55, which would restart a border logo)
+SCR_PARK_Y      = 250           ; hidden sprites run at 250-291 in the right border (X 350),
+                                ; finished before the logo (line 8) and figure (66) commits;
+                                ; never park where a running sprite gets re-pointed
 LOGO_Y_PAL      = 18            ; top border (lines 18..49, Y-expanded; row 0 starts at 51)
 LOGO_Y_NTSC     = 52            ; title screen only: rows 0-4
 LOGO_COL        = COL_BRASS
@@ -96,10 +96,42 @@ scroller_init:
 yexp_tbl: !byte $ff, 0
 wrap_tbl: !byte <(504-256), <(520-256)
 
-; A = movement table index (routine*15 + slot): switch at the next load
+SCR_CUT_X0      = 64            ; where the new cue starts (px into the screen)
+
+; A = movement table index (routine*15 + slot): cut to the new cue at
+; once — English first (readable the moment the movement starts), then
+; the Japanese cue, alternating. The 8 sprites are re-seated left to
+; right from SCR_CUT_X0 and loaded with the first 8 cells.
 scroller_set_text:
+        sta scr_idx
+        lda #$ff
         sta scr_pending
-        rts
+        lda #1                  ; English first
+        sta scr_mode
+        jsr scr_load_string
+        lda #<SCR_CUT_X0
+        sta scr_x_lo
+        lda #>SCR_CUT_X0
+        sta scr_x_hi
+        ldx #1
+-       lda scr_x_lo-1,x
+        clc
+        adc #48
+        sta scr_x_lo,x
+        lda scr_x_hi-1,x
+        adc #0
+        sta scr_x_hi,x
+        inx
+        cpx #8
+        bne -
+        lda #0
+        sta scr_cur
+-       jsr scr_load_next
+        inc scr_cur
+        lda scr_cur
+        cmp #8
+        bne -
+        jmp scr_build
 
 scroller_hide:
         lda #1
