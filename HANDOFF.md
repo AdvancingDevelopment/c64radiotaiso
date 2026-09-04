@@ -147,6 +147,17 @@ backdrop in the VIC-bank spare, data 18.9 KB / 20 KB. Adding anything sizeable n
 trimming: the 8×16 Latin scroller glyphs (704 B), the finish phrase sample (2 KB), pose head
 tilt frames. Keep `$7FFF` = 0.
 
+## Verification status (2026-09-04, final integration)
+
+- `make test`: 34 screenshots OK (title PAL/NTSC, border, HUD, raster, 26 movement screens,
+  boundary, finish, NTSC movement). Full-length runs reach the finish screen on PAL (3:08)
+  and NTSC.
+- Voice-on 100 s runs of both routines: 0 late border switches (DEBUG_HUD counter).
+- Audio (`check_wav.py`): song 1 PAL 8/8, song 1 with voice 7/7, song 2 PAL 8/10 (two
+  repeated-pitch bass probes report +40 ms — a detector limitation), song 1 NTSC within
+  ±32 ms (some probes 2 NTSC frames early; not investigated further, inaudible for the use).
+- Not yet verified by a human: how it sounds and feels in real time (`make run`).
+
 ## Status log
 
 - 2026-09-04 (later): all four subsystems merged (music, puppet + shin multiplex, UI/text/

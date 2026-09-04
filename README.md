@@ -29,4 +29,31 @@ Keys: `1`/`2` choose the routine (or joystick), `SPACE` pause, `F1` figure size,
 Japanese/English emphasis, `F5` voice on/off, `+`/`-` (or `F7`) tempo 80–120 %, `Q`/`RUN-STOP`
 back to the title.
 
-See `HANDOFF.md` for the architecture and module contracts.
+## Regenerating the data
+
+```
+node tools/sample_rig.mjs && python3 tools/puppet.py   # poses from ~/taiso rig -> sprites/poses
+python3 tools/songconv.py && python3 tools/songconv.py --check   # music from ~/taiso/score
+python3 tools/glyphs.py && python3 tools/backdrop.py   # Japanese glyphs (Shinonome), backdrop
+python3 tools/digi.py                                   # voice (macOS `say -v Kyoko`, ffmpeg)
+```
+
+Drop your own recordings as `assets/voice/<word>.wav` (see `assets/voice/README.md`) to replace
+the synthesized voice.
+
+## Verification
+
+`make test` builds the test variants and writes screenshots to `build/test/` (title, every
+movement of both routines at its signature phase, boundary crossing, finish, NTSC). Audio:
+capture with `x64sc ... -soundrecdev wav -soundrecarg out.wav` and run
+`python3 tools/check_wav.py out.wav --song 1` (see the script's docstring). `-DDEBUG_HUD=1`
+builds show frame/tick/beat/count/movement/period and the raster-timing counters on row 24.
+
+## Notes
+
+- PAL is the primary target (border logo and border scroller). On NTSC the borders are not
+  visible, so the scroller runs inside the bottom rows and the title logo sits in the picture.
+- The SID voice is 4-bit; 8580 SIDs need the "digi boost" fix (VICE: SID model 8580D).
+- Memory is nearly full (see HANDOFF.md) — adding content means trimming something.
+
+See `HANDOFF.md` for the architecture, module contracts and the raster-timing lessons.
