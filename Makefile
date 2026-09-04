@@ -13,10 +13,10 @@ build/taiso.prg: $(SRC)
 
 .PHONY: run test clean gen d64
 
-# -soundsync 2 = "exact": VICE keeps the emulated frame rate steady and lets the audio
-# adapt (the default flexible sync can duplicate/drop displayed frames under the 5 kHz
-# digi load, which shows up as scrolling-text stutter on the host — not on real hardware)
-VICEOPTS ?= -soundsync 2 -soundbufsize 100
+# VICE 3.10: host vsync on, a large sound buffer so the audio side never has to stretch
+# the stream (a small buffer under the 5 kHz digi load can make VICE duplicate/drop displayed
+# frames, which shows up as scrolling-text stutter on the host — not on real hardware)
+VICEOPTS ?= -VICIIvsync -soundbufsize 150 -soundfragsize 3
 
 run: build/taiso.prg
 	$(X64SC) $(VICEOPTS) -autostartprgmode 1 build/taiso.prg
