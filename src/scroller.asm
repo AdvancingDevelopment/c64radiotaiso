@@ -466,7 +466,30 @@ scroller_commit:
 ; ---------------------------------------------------------------
 ; logo: 7 glyphs of title_jp[A] converted into slots 24-30
 ; ---------------------------------------------------------------
-logo_show:                      ; A = routine
+; title screen: just ラジオ体操 (5 glyphs, centred) — 第一/第二 is the
+; routine's name, which the menu shows next to each choice
+logo_show_plain:
+        lda #0
+        jsr logo_show           ; ラジオ体操第一 into slots 24-30 ...
+        ldx #0
+        txa
+-       sta DYN_SLOTS+$340,x    ; ... then blank slots 29,30 (第一)
+        inx
+        cpx #128
+        bne -
+        lda #44                 ; and shift the five glyphs to the centre
+        sta logo_xoff
+        lda #%11110000          ; MSB: sprites 4 (X 256), 5, 6 (blank), 7
+        sta logo_msb
+        rts
+
+logo_show:                      ; A = routine (7 glyphs, used during play)
+        pha
+        lda #0
+        sta logo_xoff
+        lda #%11100000          ; MSB: sprites 5, 6 (X >= 256) and 7
+        sta logo_msb
+        pla
         tax
         lda title_jp_lo,x
         sta zp_ssrc2
@@ -564,6 +587,8 @@ logo_commit:
         ldx #6
         ldy #12
 -       lda logo_x_lo,x
+        clc
+        adc logo_xoff
         sta VIC_SPR0_X,y
         txa
         clc
@@ -577,7 +602,7 @@ logo_commit:
         bpl -
         lda #<350
         sta VIC_SPR0_X+14       ; sprite 7 parked in the right border
-        lda #%11100000          ; MSB: sprites 5, 6 (X >= 256) and 7
+        lda logo_msb            ; MSB bits for this logo layout
         sta VIC_SPR_MSB
         lda #$ff
         sta VIC_SPR_XEXP
@@ -585,6 +610,8 @@ logo_commit:
         sta VIC_SPR_ENABLE
 .out:   rts
 logo_x_lo: !for i, 0, 6 { !byte <(LOGO_X0 + 44*i) }
+logo_xoff: !byte 0
+logo_msb:  !byte %11100000
 logo_sine: !for i, 0, 63 { !byte int(4.5 + 4.0 * sin(float(i) * 6.2831853 / 64.0)) }
 
 ; --- state ---

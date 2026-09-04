@@ -175,6 +175,42 @@ irq_bottom:
         lda VIC_CTRL1
         and #$77            ; 24-row mode again (harmless repeat, see irq_scroll)
         sta VIC_CTRL1
+!ifdef DEBUG_HUD {
+        ; consistency check while the glyph sprites are on screen: every
+        ; register the scroller relies on must hold the committed value
+        lda scr_hidden
+        bne .regok
+        lda VIC_SPR0_X+1
+        cmp scr_y_now
+        bne .regbad
+        lda VIC_SPR0_X+9
+        cmp scr_y_now
+        bne .regbad
+        lda VIC_SPR0_X+0
+        cmp scr_vx+0
+        bne .regbad
+        lda VIC_SPR0_X+8
+        cmp scr_vx+4
+        bne .regbad
+        lda SPR_PTRS+0
+        cmp scr_ptr+0
+        bne .regbad
+        lda SPR_PTRS+4
+        cmp scr_ptr+4
+        bne .regbad
+        lda VIC_SPR_ENABLE
+        cmp #$ff
+        bne .regbad
+        lda VIC_SPR_YEXP
+        cmp scr_yexp
+        bne .regbad
+        lda VIC_SPR_MSB
+        cmp scr_msb
+        beq .regok
+.regbad:
+        inc irq_bad_regs
+.regok:
+}
         inc zp_frame
         jsr clock_frame
         jsr music_frame
@@ -186,6 +222,7 @@ irq_bottom:
 irq_idx:     !byte 0
 !ifdef DEBUG_HUD {
 irq_late_border: !byte 0
+irq_bad_regs: !byte 0
 irq_max_a: !byte 0
 irq_max_b: !byte 0
 irq_max_c: !byte 0

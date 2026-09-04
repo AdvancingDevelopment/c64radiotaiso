@@ -343,6 +343,9 @@ debug_hud:
         jsr put_hex
         lda irq_max_c
         jsr put_hex
+        iny
+        lda irq_bad_regs        ; frames with a wrong scroller register at line 249
+        jsr put_hex
         rts
 !ifdef TEST_SLOTDUMP {
 ; row 22: for scroller slots 16..23, bytes 0 of rows 4 and 8 (hex)

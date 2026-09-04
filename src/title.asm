@@ -105,8 +105,7 @@ title_select:
         jsr .line
         lda #1
         jsr .line
-        lda zp_tsel
-        jmp logo_show
+        jmp logo_show_plain     ; ラジオ体操 (no routine number yet)
 .line:  tax
         lda #COL_GREY
         cpx zp_tsel

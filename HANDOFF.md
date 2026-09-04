@@ -163,6 +163,12 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (diagnosis): `DEBUG_HUD` now also counts frames in which any scroller register
+  ($D001/$D009 Y, $D000/$D008 X, pointers 0/4, $D015, $D017, $D010) differs from the committed
+  value at line 249 (`irq_bad_regs`). NTSC, voice on, 65 s: 1 bad frame in ~3900 (the movement
+  cut). So the VIC state is right; the flicker the user still sees in VICE with the voice on is
+  on the emulator side (reSID "resampling" mode + 5 kHz $D418 writes). `make run` tries
+  `-residsamp 1`. Title logo is now ラジオ体操 (5 glyphs) — 第一/第二 only during play.
 - 2026-09-04 (NTSC round 6): NTSC counters with the voice on showed the scroller commit
   starting as late as 234 and ending at 245 (> glyph Y 237) — the eight register sets take
   up to 10 lines under NMI + badlines + sprite DMA, and the line itself moves with the knees.

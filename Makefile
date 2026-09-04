@@ -18,7 +18,7 @@ build/taiso.prg: $(SRC)
 # frames, which shows up as scrolling-text stutter on the host — not on real hardware).
 # -sidmodel 0 = 6581: VICE defaults to the 8580 here, on which the 4-bit voice is nearly
 # silent (use -sidmodel 2 for "8580 + digiboost" instead if you prefer the 8580 sound)
-VICEOPTS ?= -VICIIvsync -soundbufsize 150 -soundfragsize 3 -sidmodel 0
+VICEOPTS ?= -VICIIvsync -soundbufsize 150 -soundfragsize 3 -sidmodel 0 -residsamp 1
 
 run: build/taiso.prg
 	$(X64SC) $(VICEOPTS) -autostartprgmode 1 build/taiso.prg
