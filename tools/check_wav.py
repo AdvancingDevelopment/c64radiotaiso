@@ -39,6 +39,12 @@ def load_wav(path):
     a = array.array("h", raw)
     if ch > 1:
         a = array.array("h", [sum(a[i:i + ch]) // ch for i in range(0, len(a), ch)])
+    # normalise: captures differ wildly in level (host volume, SID model),
+    # so scale the peak to a fixed value before the absolute thresholds apply
+    peak = max(1, max(abs(v) for v in a))
+    if abs(peak - 1200) > 200:
+        k = 1200.0 / peak
+        a = array.array("h", [int(v * k) for v in a])
     return a, sr
 
 
@@ -68,13 +74,20 @@ def sid_hz(idx, ntsc):
     return songconv.sid_freq(idx, clock) * clock / 16777216.0
 
 
-def first_sound(samples, sr, thresh=40):
-    """First 10 ms block whose RMS exceeds thresh (LSB) -> seconds."""
+def first_sound(samples, sr, thresh=40, hold=4):
+    """Start of the first run of `hold` consecutive 10 ms blocks whose RMS
+    exceeds thresh (LSB) -> seconds. The run requirement skips the one-block
+    click the SID makes when the player initialises, a frame before tick 0."""
     blk = sr // 100
+    run = 0
     for i in range(0, len(samples) - blk, blk):
         seg = samples[i:i + blk]
         if math.sqrt(sum(v * v for v in seg) / blk) > thresh:
-            return i / sr
+            run += 1
+            if run == hold:
+                return (i - (hold - 1) * blk) / sr
+        else:
+            run = 0
     return None
 
 
