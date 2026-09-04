@@ -162,6 +162,12 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (NTSC round): PAL/NTSC layout values are chosen at boot (`scroll_min_line`,
+  `scr_y_min` in init.asm): NTSC scroller line 229 / glyph Y 235 (rows 23-24, inside the
+  200-line picture, unexpanded), no border wait on NTSC, key hint on row 22 (`ui_ntsc_help`).
+  PAL logo lowered to Y 26 (wobble 22-30): at Y 18 the wobble carried the glyph tops above
+  the visible area, seen as flicker at the top of the logo. Verified: NTSC title/play
+  screenshots, 55-100 s NTSC HUD runs with 0 late frames.
 - 2026-09-04 (feedback round): (c) glyph ($1b) + ko-fi line on the title; F-keys replaced by
   S/L/V and 1-5 tempo; figure commit moved to line 66 (the logo's last rows were being
   re-pointed to figure frames at line 50 → fragments in rows 0-1); hidden scroller sprites now

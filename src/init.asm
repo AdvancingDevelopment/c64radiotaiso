@@ -102,4 +102,14 @@ detect_pal:
         adc #0
         eor #1              ; carry set (PAL) -> 0, clear (NTSC) -> 1
         sta zp_ntsc
+        ; system-dependent layout values
+        tax
+        lda scroll_line_tbl,x
+        sta scroll_min_line
+        lda scr_y_tbl,x
+        sta scr_y_min
         rts
+scroll_line_tbl: !byte LINE_SCROLL_PAL, LINE_SCROLL_NTSC
+scr_y_tbl:       !byte SCR_Y_PAL, SCR_Y_NTSC
+scroll_min_line: !byte LINE_SCROLL_PAL
+scr_y_min:       !byte SCR_Y_PAL

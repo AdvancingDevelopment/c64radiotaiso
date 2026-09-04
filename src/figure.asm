@@ -157,7 +157,7 @@ figure_hide:
         sta VIC_SPR_ENABLE
         lda #LINE_SPLIT_DEF
         sta irq_lines+2
-        lda #LINE_SCROLL_DEF
+        lda scroll_min_line
         sta irq_lines+3
         rts
 
@@ -257,7 +257,7 @@ figure_render:
 +       clc
         adc zp_wy
         sta buf+B_SPLIT,x
-        ; scroller line = max(shin box bottom + 1, LINE_SCROLL_DEF), <= 246
+        ; scroller line = max(shin box top + 33, scroll_min_line), <= 246
         lda buf+B_SHIN+1,x
         cmp buf+B_SHIN+3,x
         bcs +
@@ -269,9 +269,9 @@ figure_render:
         jmp ++
 +       clc
         adc #SCROLL_ADD1
-++      cmp #LINE_SCROLL_DEF
+++      cmp scroll_min_line
         bcs +
-        lda #LINE_SCROLL_DEF
+        lda scroll_min_line
 +       cmp #247
         bcc +
         lda #246

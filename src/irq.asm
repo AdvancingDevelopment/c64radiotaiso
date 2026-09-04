@@ -122,6 +122,10 @@ irq_scroll:
         sta irq_max_b
 +
 }
+        lda zp_ntsc
+        beq +
+        rts                     ; NTSC: no border to open, no wait
++
         ; The 24-row switch that keeps the vertical border open must land in
         ; lines 248-251 (after the 24-row bottom compare at 247, before the
         ; 25-row one at 251). Doing it here right after the scroller writes
@@ -166,7 +170,7 @@ irq_max_a: !byte 0
 irq_max_b: !byte 0
 irq_max_c: !byte 0
 }
-irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_SCROLL_DEF, LINE_BORDER
+irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_SCROLL_PAL, LINE_BORDER
 irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll, <irq_bottom
 irq_vec_hi:  !byte >irq_top, >irq_figure, >irq_split, >irq_scroll, >irq_bottom
 !ifdef RASTER_DEBUG {

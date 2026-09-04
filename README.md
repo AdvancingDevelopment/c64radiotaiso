@@ -52,8 +52,10 @@ builds show frame/tick/beat/count/movement/period and the raster-timing counters
 
 ## Notes
 
-- PAL is the primary target (border logo and border scroller). On NTSC the borders are not
-  visible, so the scroller runs inside the bottom rows and the title logo sits in the picture.
+- Works on PAL and NTSC (detected at boot). PAL shows the logo in the top border and the
+  scroller reaching into the bottom border; on NTSC (no visible borders) the scroller runs
+  inside rows 23-24 with a key hint on row 22, and the title logo sits in the picture. Test
+  NTSC with `make run-ntsc`.
 - The SID voice is 4-bit; 8580 SIDs need the "digi boost" fix (VICE: SID model 8580D).
 - Memory is nearly full (see HANDOFF.md) — adding content means trimming something.
 

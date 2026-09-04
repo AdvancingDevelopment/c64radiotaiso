@@ -128,6 +128,7 @@ ui_play_init:
         ldx #16
         jsr glyph_line
 }
+        jsr ui_ntsc_help        ; NTSC: key hint on row 22 (scroller sits in 23-24)
         rts
 
 txt_title0: !scr "radio taiso no.", $ff
@@ -332,7 +333,17 @@ ui_pause_hide:
         sta zp_y
         lda #3
         jsr rows_clear
+        jsr ui_ntsc_help
         jmp scroller_show
+
+; NTSC has no visible bottom border: the scroller sits in rows 23-24, so
+; row 22 carries a permanent key hint there
+ui_ntsc_help:
+        lda zp_ntsc
+        beq +
+        +print 1, 22, txt_ntsc_help, COL_DIM
++       rts
+txt_ntsc_help: !scr "space:pause  v:voice  1-5:tempo  q:quit", $ff
 txt_paused: !scr "paused", $ff
 txt_help1:  !scr "space:resume  q:quit  s:size  v:voice", $ff
 txt_help2:  !scr "l:language  1-5:tempo 80-120%", $ff

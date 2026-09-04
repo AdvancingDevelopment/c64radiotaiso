@@ -68,7 +68,10 @@ VIC_MEMPTR_VAL  = $02           ; screen at bank+$0000, charset at bank+$0800
 LINE_TOP        = 8             ; logo sprites, restore 25-row mode
 LINE_FIGURE     = 66            ; commit figure sprite block (after the logo's last line 59)
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
-LINE_SCROLL_DEF = 235           ; scroller IRQ line (sprites 4/5 written last, after the shins)
+LINE_SCROLL_PAL = 235           ; scroller IRQ line (sprites 4/5 written last, after the shins)
+LINE_SCROLL_NTSC = 229          ; NTSC: the scroller must stay inside the 200-line picture
+SCR_Y_PAL       = 245           ; scroller glyph Y (Y-expanded, into the open bottom border)
+SCR_Y_NTSC      = 235           ; NTSC: 21 px, rows 23-24, ends at line 255 worst case
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
 IRQ_ENTRIES     = 5
 

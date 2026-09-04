@@ -28,12 +28,11 @@
 ; ---------------------------------------------------------------
 
 SCR_SPEED       = 2             ; px per frame (tunable)
-SCR_Y           = 245           ; 6 lines under the IRQ line: 8 sprite writes take ~2.5 lines
 SCR_WRAP_PX     = 384           ; 8 sprites * 48 px
 SCR_PARK_Y      = 250           ; hidden sprites run at 250-291 in the right border (X 350),
                                 ; finished before the logo (line 8) and figure (66) commits;
                                 ; never park where a running sprite gets re-pointed
-LOGO_Y_PAL      = 18            ; top border (lines 18..49, Y-expanded; row 0 starts at 51)
+LOGO_Y_PAL      = 26            ; top border: wobble 22..30, ink to 61 (lines < 20 are off most screens)
 LOGO_Y_NTSC     = 52            ; title screen only: rows 0-4
 LOGO_COL        = COL_BRASS
 LOGO_X0         = 36            ; 7 x 44 px pitch, centred on 184
@@ -354,7 +353,7 @@ latin_col:
         bpl -
         rts
 row3:   !for i, 0, 15 { !byte i*3 }
-scr_y_now: !byte SCR_Y
+scr_y_now: !byte SCR_Y_PAL
 
 ; ---------------------------------------------------------------
 ; IRQ at irq_lines+3: all 8 sprite register sets for the scroller
@@ -382,9 +381,9 @@ scroller_commit:
         lda irq_lines+3
         clc
         adc #6
-        cmp #SCR_Y
+        cmp scr_y_min           ; PAL 245 (border), NTSC 235 (inside the picture)
         bcs +
-        lda #SCR_Y
+        lda scr_y_min
 +       sta scr_y_now
         +scr_set 0
         +scr_set 1
