@@ -225,8 +225,8 @@ class Frame:
             if h > 21:                            # torso too long: keep the waist end
                 r1 = min(r1, int(PIV) - 1)        # drop the cap below the waist
             top = r1 - 20
-        elif self.align == "top":
-            top = r0
+        elif self.align.startswith("top"):        # "top" or "topN": ink N rows down
+            top = r0 - int(self.align[3:] or 0)
         else:
             top = r0 - (21 - h) // 2
         w = c1 - c0 + 1
@@ -294,7 +294,7 @@ def make_frame(key):
         fa = a + FOOT_ANG if side == "L" else a - FOOT_ANG
         fd = dirv(fa)
         ink = raster([capsule(P((0, 0)), P(ankle)), obox(P(ankle), fd, -0.5, 2.5, 1.0)])
-        return Frame(key, kind, ink, ankle, align="top")
+        return Frame(key, kind, ink, ankle, align="top3")   # 3 blank rows above: the shin box ends 6 lines earlier
     if kind == "torso":
         a, lvl = key[1], key[2]
         d = dirv(a)

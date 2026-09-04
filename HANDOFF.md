@@ -163,6 +163,12 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
+- 2026-09-04 (NTSC round 3): the NTSC scroller flicker was the shin sprites (4/5) being
+  crunched: their expansion bit had to flip in a 3-line window between the shin box ending
+  (~233) and the scroller starting (237), which NMI latency missed. Fix in the generator: shin
+  ink now starts at row 3 of its sprite box (`align="top3"` in puppet.py), so the box ends 6
+  lines earlier (multiplex gap min 10 lines, still safe for the split IRQ) — verified: NTSC
+  consecutive frames identical in the scroller zone, 0 late frames PAL/NTSC.
 - 2026-09-04 (NTSC round 2): NTSC horizon/sun/rays/stations one row higher (`ui_dy`) so the
   raised figure stands on the horizon; size key removed; finish screen clears the NTSC hint.
 - 2026-09-04 (NTSC round): PAL/NTSC layout values are chosen at boot (`scroll_min_line`,
