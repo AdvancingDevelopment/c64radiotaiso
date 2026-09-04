@@ -11,6 +11,7 @@ segs = [("code", "code_start", "code_end", "CODE_LIMIT"),
         ("stage", "stage_start", "stage_end", "STAGE_LIMIT"),
         ("charset", "charset_start", "charset_end", "CHARSET_LIMIT"),
         ("frames", "frames_start", "frames_end", "FRAMES_LIMIT"),
+        ("bankdata", "frames_end", "bankdata_end", "FRAMES_LIMIT"),
         ("data", "data_start", "data_end", "DATA_LIMIT")]
 print(f"taiso.prg: {size} bytes")
 for name, a, b, lim in segs:

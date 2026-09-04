@@ -322,6 +322,7 @@ latin_col:
         bpl -
         rts
 row3:   !for i, 0, 15 { !byte i*3 }
+scr_y_now: !byte SCR_Y
 
 ; ---------------------------------------------------------------
 ; IRQ at irq_lines+3: all 8 sprite register sets for the scroller
@@ -329,11 +330,21 @@ row3:   !for i, 0, 15 { !byte i*3 }
 scroller_commit:
         lda scr_hidden
         bne .hide
+        ; the shin sprites (4/5) may still be running when this IRQ fires:
+        ; the figure sets irq_lines+3 to their box bottom + 1, so the glyphs
+        ; start 2 lines below the current raster (never above SCR_Y)
+        lda irq_lines+3
+        clc
+        adc #2
+        cmp #SCR_Y
+        bcs +
+        lda #SCR_Y
++       sta scr_y_now
         ldx #7
         ldy #14
 -       lda scr_vx,x
         sta VIC_SPR0_X,y
-        lda #SCR_Y
+        lda scr_y_now
         sta VIC_SPR0_X+1,y
         lda scr_ptr,x
         sta SPR_PTRS,x

@@ -94,6 +94,7 @@ last_frame: !byte 0
 !src "src/scroller.asm"
 !src "src/digi.asm"
 !src "src/text.asm"
+!src "src/gen_song1.asm"        ; song 1 data lives here: the data segment is full
 code_end:
 !if * > CODE_LIMIT { !error "code overflows into the staging area" }
 
@@ -114,17 +115,18 @@ stage_end:
 frames_start:
 !src "src/gen_sprites.asm"
 frames_end:
-!if * > FRAMES_LIMIT { !error "sprite frames overflow the VIC bank" }
+; spare VIC-bank RAM behind the sprite frames holds plain data
+!src "src/gen_backdrop.asm"
+bankdata_end:
+!if * > FRAMES_LIMIT-16 { !error "sprite frames + bank data overflow the VIC bank" }
 * = FRAMES_LIMIT-1
 !byte 0                         ; $7fff: idle-state graphics byte must be 0
 
 * = DATA_START
 data_start:
-!src "src/gen_song1.asm"
 !src "src/gen_song2.asm"
 !src "src/gen_poses.asm"
 !src "src/gen_glyphs.asm"
-!src "src/gen_backdrop.asm"
 !src "src/gen_digi2.asm"        ; digi part 2 (plain data area)
 data_end:
 !if * > DATA_LIMIT { !error "data overflows $d000" }

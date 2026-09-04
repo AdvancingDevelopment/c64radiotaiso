@@ -124,13 +124,14 @@ step_play:
         jsr choreo_tick         ; decode pose for zp_local_tick
         jsr figure_render       ; -> sprite shadow block
 !ifdef TEST_FREEZE {
-        lda zp_tick+1           ; hold the clock once the target tick is shown
+        lda zp_tick+1           ; hold the clock once tick >= TEST_TICK is shown
         cmp #>TEST_TICK
-        bne +
+        bcc +
+        bne .hold
         lda zp_tick
         cmp #<TEST_TICK
-        bne +
-        lda #1
+        bcc +
+.hold:  lda #1
         sta zp_tick_hold
 +
 }
