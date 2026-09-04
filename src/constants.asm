@@ -154,6 +154,7 @@ zp_ui           = $50
 ; $60-$6f irq chain
 zp_irq_jmp      = $60           ; word: current handler
 zp_clock_tbl    = $62           ; word: period table pointer
+zp_clock_tmp    = $64           ; IRQ-side scratch (never zp_tmp in the IRQ!)
 ; $70-$7f title
 zp_title        = $70
 

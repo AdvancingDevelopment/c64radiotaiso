@@ -118,12 +118,12 @@ clock_frame:
         asl
         asl
         asl                     ; hi<<5
-        sta zp_tmp
+        sta zp_clock_tmp
         lda zp_tick
         lsr
         lsr
         lsr
-        ora zp_tmp
+        ora zp_clock_tmp
         sta zp_beat
         and #7
         clc
