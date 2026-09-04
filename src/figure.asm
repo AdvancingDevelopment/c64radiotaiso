@@ -48,8 +48,9 @@ B_SPLIT     = 32
 B_SCROLL    = 33
 B_EXP       = 34
 
-SCROLL_ADD2 = 43                ; shin box: Y + 42 lines at 2x, IRQ one line later
-SCROLL_ADD1 = 22
+SCROLL_ADD2 = 33                ; shin box: Y + 32 lines at 2x — the scroller glyph rows
+                                ; that replace the shin's blank tail (rows 16-20) are blank too
+SCROLL_ADD1 = 17
 
 ; ---------------------------------------------------------------
 ; place one part: Y = frame pointer byte, X = buffer base,

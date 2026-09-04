@@ -68,7 +68,7 @@ VIC_MEMPTR_VAL  = $02           ; screen at bank+$0000, charset at bank+$0800
 LINE_TOP        = 8             ; logo sprites, restore 25-row mode
 LINE_FIGURE     = 50            ; commit figure sprite block
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
-LINE_SCROLL_DEF = 239           ; scroller IRQ line (below every shin sprite box)
+LINE_SCROLL_DEF = 235           ; scroller IRQ line (sprites 4/5 written last, after the shins)
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
 IRQ_ENTRIES     = 5
 

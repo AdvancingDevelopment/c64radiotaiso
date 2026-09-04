@@ -327,13 +327,26 @@ scr_y_now: !byte SCR_Y
 ; ---------------------------------------------------------------
 ; IRQ at irq_lines+3: all 8 sprite register sets for the scroller
 ; ---------------------------------------------------------------
+; one sprite's register set, straight-line (no loop: this runs inside the
+; narrow window before the 24-row border switch, see irq.asm)
+!macro scr_set .n {
+        lda scr_vx+.n
+        sta VIC_SPR0_X+2*.n
+        lda scr_y_now
+        sta VIC_SPR0_X+2*.n+1
+        lda scr_ptr+.n
+        sta SPR_PTRS+.n
+        lda #COL_BRASS
+        sta VIC_SPR0_COL+.n
+}
 scroller_commit:
         lda scr_hidden
-        bne .hide
-        ; the shin sprites (4/5) may still be running when this IRQ fires:
-        ; the figure sets irq_lines+3 to max(shin box bottom + 1, 239), so
-        ; the glyphs start 6 lines below it (never above SCR_Y): the eight
-        ; register sets take ~2.5 raster lines to write, plus NMI latency
+        beq +
+        jmp .hide
++       ; the shin sprites (4/5) may still be running when this IRQ fires:
+        ; the figure sets irq_lines+3 to max(shin box bottom + 1, 235), so
+        ; the glyphs start 6 lines below it (never above SCR_Y). Sprites 4/5
+        ; are written last, after the others (~3 raster lines in).
         lda irq_lines+3
         clc
         adc #6
@@ -341,20 +354,14 @@ scroller_commit:
         bcs +
         lda #SCR_Y
 +       sta scr_y_now
-        ldx #7
-        ldy #14
--       lda scr_vx,x
-        sta VIC_SPR0_X,y
-        lda scr_y_now
-        sta VIC_SPR0_X+1,y
-        lda scr_ptr,x
-        sta SPR_PTRS,x
-        lda #COL_BRASS
-        sta VIC_SPR0_COL,x
-        dey
-        dey
-        dex
-        bpl -
+        +scr_set 0
+        +scr_set 1
+        +scr_set 2
+        +scr_set 3
+        +scr_set 6
+        +scr_set 7
+        +scr_set 4
+        +scr_set 5
         lda scr_msb
         sta VIC_SPR_MSB
         lda scr_xexp

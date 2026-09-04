@@ -340,6 +340,16 @@ debug_hud:
         jsr put_hex
         lda clock_period
         jsr put_hex
+        iny
+        lda irq_late_border     ; late 24-row switches (frames with a closed border)
+        jsr put_hex
+        iny
+        lda irq_max_a           ; max raster: scroller entry start / after writes / after switch
+        jsr put_hex
+        lda irq_max_b
+        jsr put_hex
+        lda irq_max_c
+        jsr put_hex
         rts
 !ifdef TEST_SLOTDUMP {
 ; row 22: for scroller slots 16..23, bytes 0 of rows 4 and 8 (hex)

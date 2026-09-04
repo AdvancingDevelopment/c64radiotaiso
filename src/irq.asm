@@ -107,11 +107,50 @@ irq_split:
         jmp figure_split
 
 irq_scroll:
-        jmp scroller_commit
+!ifdef DEBUG_HUD {
+        lda VIC_RASTER          ; max raster seen at entry
+        cmp irq_max_a
+        bcc +
+        sta irq_max_a
++
+}
+        jsr scroller_commit
+!ifdef DEBUG_HUD {
+        lda VIC_RASTER          ; max raster after the sprite writes
+        cmp irq_max_b
+        bcc +
+        sta irq_max_b
++
+}
+        ; The 24-row switch that keeps the vertical border open must land in
+        ; lines 248-251 (after the 24-row bottom compare at 247, before the
+        ; 25-row one at 251). Doing it here right after the scroller writes
+        ; gives ~3 lines of slack; the bottom entry at 249 would be too late
+        ; whenever this entry is stretched by the digi NMI.
+-       lda VIC_RASTER
+        cmp #LINE_BORDER-1
+        bcc -
+        lda VIC_CTRL1
+        and #$77            ; 24-row mode, raster MSB clear
+        sta VIC_CTRL1
+!ifdef DEBUG_HUD {
+        lda VIC_CTRL1       ; count switches that landed too late (> line 251)
+        bmi .latecnt
+        lda VIC_RASTER
+        cmp irq_max_c
+        bcc ++
+        sta irq_max_c
+++      cmp #LINE_BORDER+3
+        bcc +
+.latecnt:
+        inc irq_late_border
++
+}
+        rts
 
 irq_bottom:
         lda VIC_CTRL1
-        and #$77            ; 24-row mode (247 already passed); raster MSB clear
+        and #$77            ; 24-row mode again (harmless repeat, see irq_scroll)
         sta VIC_CTRL1
         inc zp_frame
         jsr clock_frame
@@ -121,6 +160,12 @@ irq_bottom:
 
 ; NMI: digi player (digi.asm); before it exists, an acknowledging stub
 irq_idx:     !byte 0
+!ifdef DEBUG_HUD {
+irq_late_border: !byte 0
+irq_max_a: !byte 0
+irq_max_b: !byte 0
+irq_max_c: !byte 0
+}
 irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_SCROLL_DEF, LINE_BORDER
 irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll, <irq_bottom
 irq_vec_hi:  !byte >irq_top, >irq_figure, >irq_split, >irq_scroll, >irq_bottom
