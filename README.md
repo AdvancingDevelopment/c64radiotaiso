@@ -65,7 +65,8 @@ builds show frame/tick/beat/count/movement/period and the raster-timing counters
 
 Coded with assistance from Anthropic's Claude. Music: the original compositions "Asa no
 March" and "Hikari no March" by Advancing Development. Japanese glyphs: the public-domain
-Shinonome font (see `tools/fonts/README.md`). © 2026 Advancing Development.
+Shinonome font (see `tools/fonts/README.md`). © 2026 Advancing Development. Source code
+under the MIT licence (`LICENSE`); the music is © Advancing Development.
 
 See `HANDOFF.md` for the architecture, module contracts and the raster-timing lessons, and
 `release/RELEASING.md` for the release checklist (itch.io, CSDb, Lemon64, archive.org, ...).

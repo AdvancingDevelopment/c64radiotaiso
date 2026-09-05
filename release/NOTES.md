@@ -34,4 +34,6 @@ PAL and NTSC machines are both supported (detected at start-up). Joystick in por
 Code, music and design: Advancing Development, 2026. Coded with assistance from Anthropic's Claude.
 Japanese glyphs: Shinonome font (public domain, /efont/, 2001). Built with the ACME cross-assembler; tested in VICE 3.10.
 
+Source code under the MIT licence: https://github.com/AdvancingDevelopment/c64radiotaiso
+
 Web version: https://radiotaiso.org · Support the project: https://ko-fi.com/advancing

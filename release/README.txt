@@ -48,3 +48,4 @@ CREDITS
   Support the project . https://ko-fi.com/advancing
 
 (C) 2026 Advancing Development. Free to download and share.
+Source code (MIT licence): https://github.com/AdvancingDevelopment/c64radiotaiso

@@ -30,10 +30,8 @@ description — the scene appreciates disclosure, and it forestalls questions).
 
 Every other listing wants a stable URL and most reviewers look for source.
 
-1. Add a `LICENSE` file (the repo has none). MIT for the code is the usual
-   choice for C64 homebrew; the music is your own, the Shinonome font is
-   public domain (`tools/fonts/README.md`). If you would rather keep the
-   source private, skip this section and host the zip on itch.io only.
+1. The code is MIT-licensed (`LICENSE`, added 2026-09-04); the music is your
+   own, the Shinonome font is public domain (`tools/fonts/README.md`).
 2. The repo is https://github.com/AdvancingDevelopment/c64radiotaiso (created
    with `gh repo create c64radiotaiso --public --source=. --push`). Push the
    branch and the tag: `git push origin main v<x.y>`.
