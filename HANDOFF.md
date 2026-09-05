@@ -171,6 +171,14 @@ at the user's request, freeing the $E000 block and ~6 KB of the data segment. Ke
 
 ## Status log
 
+- 2026-09-04 (UI pass 2): row 1 shows the English name centred (the n/13 counter is dropped —
+  the progress dots already show it); elapsed clock moved to col 36 (flush right); the Japanese
+  name on rows 2-3 gets a 1-cell gap between glyphs when it fits (n<=13; the 14/16-glyph names
+  stay tight); the sunrise rays render 2px lower (backdrop.py RAY_RENDER_DY) so they clear the
+  name; resume repaints the rays the centred PAUSED overwrote (ui_pause_hide -> rays_redraw).
+  Scroller pitch 48->36 with per-sprite X-expansion (scr_exp): Japanese glyphs expand (32px, a
+  slight 4px gap); English cells do not (24px, so they never overlap) — English now reads in
+  3-char groups with small gaps instead of running on. NTSC/PAL 40s HUD: 0 late, 0 bad frames.
 - 2026-09-04 (UI pass): default SID back to 8580 (`make run`); removed the on-title PAL/NTSC
   tag and the `asa no march / hikari no march` subtitle; recentred the title and moved its
   key hint clear of the sun; tempo moved off row 0 to a bottom `TEMPO: 12345` bar (row 22,

@@ -29,6 +29,8 @@ RAY_R0 = RADIUS + 10             # rays start this far from the centre
 NRAYS = 13
 ANG0, ANG1 = 135.0, 45.0         # degrees from the +x axis; ray 0 = leftmost
 DOT_ROWS = (1, 5)                # dot rows inside a cell (2 px tall each)
+RAY_RENDER_DY = 2                # render the dots this many px lower (keeps the ray
+                                 # tops clear of the Japanese name on rows 2-3)
 QX = 4                           # horizontal dot quantisation (px): 4 keeps the tile count small
 MAX_TILES = 32
 TILE_BASE = 0x50
@@ -143,8 +145,10 @@ def main():
                 if off is None:
                     continue
                 m = 0xC0 >> off
-                bits[dr] |= m
-                bits[dr + 1] |= m
+                r = dr + RAY_RENDER_DY
+                bits[r] |= m
+                if r + 1 < 8:
+                    bits[r + 1] |= m
             code = TILE_BASE + tile(bits, COL_RAY)
             lst.append((row, col, code))
         ray_lists.append(lst)

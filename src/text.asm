@@ -41,7 +41,7 @@ UI_COL_PIPS     = 32
 UI_COL_STATION0 = 8             ; stations at cols 8,10,..,32
 UI_ROW_TEMPO    = 22            ; bottom tempo bar row (clear of the scroller on both systems)
 UI_COL_TEMPO    = 14            ; "tempo: 12345" centred (12 chars)
-UI_COL_CLOCK    = 35
+UI_COL_CLOCK    = 36            ; elapsed m:ss, flush to the right edge (cols 36-39)
 AREA_A_CODE     = $80           ; charset codes of area A (B = $c0)
 AREA_B_HI       = >(CHARSET + $c0*8)   ; $4e: page of area B bitmaps
 AREA_C_ADDR     = CHARSET + $70*8
@@ -313,10 +313,17 @@ ui_pause_show:
         +print 17, 12, txt_paused, COL_BRASS
         rts
 ui_pause_hide:
-        lda #12
+        lda #12                 ; clear the 6 PAUSED cells (row 12, cols 17-22)
         sta zp_y
-        lda #1
-        jsr rows_clear
+        lda #17
+        sta zp_x
+        jsr cell_ptr
+        ldy #5
+        lda #$20
+-       sta (zp_ptr),y
+        dey
+        bpl -
+        jsr rays_redraw         ; the rays ran through those cells
         jmp scroller_show
 txt_paused: !scr "paused", $ff
 
@@ -368,55 +375,39 @@ ui_finish:
         jmp scroller_set_text
 
 ; ---------------------------------------------------------------
-; row 1: "n/13 " (brass) + English name
+; row 1: the English exercise name, centred, white (the n/13 counter is
+; dropped — the progress dots under the sun show the same thing)
 ; ---------------------------------------------------------------
 ui_row1:
         lda #UI_ROW_NAME
         sta zp_y
         lda #1
         jsr rows_clear
-        lda #0
+        jsr mv_index
+        lda mv_name_lo,x
+        sta zp_ustr
+        lda mv_name_hi,x
+        sta zp_ustr+1
+        ldy #0                  ; measure the name length
+-       lda (zp_ustr),y
+        cmp #$ff
+        beq +
+        iny
+        bne -
++       tya                     ; start col = (40 - len) / 2
+        sta zp_utmp
+        lda #40
+        sec
+        sbc zp_utmp
+        lsr
         sta zp_x
         lda #UI_ROW_NAME
         sta zp_y
         jsr cell_ptr
         ldy #0
-        lda zp_cur_mv
-        beq .name
-        cmp #MV_SLOTS-1
-        bcs .name
-        lda #COL_BRASS
-        sta zp_color
-        lda zp_cur_mv
-        cmp #10
-        bcc +
-        sbc #10
-        pha
-        lda #$31
-        sta (zp_ptr),y
-        lda zp_color
-        sta (zp_ptr2),y
-        iny
-        pla
-+       ora #$30
-        sta (zp_ptr),y
-        lda zp_color
-        sta (zp_ptr2),y
-        iny
-        lda #<txt_of13
-        sta zp_ustr
-        lda #>txt_of13
-        sta zp_ustr+1
-        jsr puts
-.name:  jsr mv_index
-        lda mv_name_lo,x
-        sta zp_ustr
-        lda mv_name_hi,x
-        sta zp_ustr+1
-        lda #COL_TEXT           ; exercise name: white in both languages
+        lda #COL_TEXT
         sta zp_color
         jmp puts
-txt_of13: !scr "/13 ", $ff
 
 ; A = colour of the Japanese name (white, same as the English row)
 jp_colour:
@@ -539,14 +530,19 @@ glyph_line:
         tya
         sec
         sbc #39
-        tay                     ; top row, next column
+        clc
+        adc glyph_gap           ; inter-glyph gap (cells); 0 for kana/title
+        tay                     ; top row, next glyph's column
         lda zp_ucode
         clc
         adc #4
         sta zp_ucode
         dec zp_ucnt
         bne .g
+        lda #0
+        sta glyph_gap           ; back to no gap for the next caller
         rts
+glyph_gap: !byte 0
 
 ; A = slot (0..14): start streaming its name into the inactive area
 jp_prefetch_start:
@@ -621,18 +617,36 @@ jp_show:
         jsr jp_prefetch_start
 +       rts
 
-; rows 2-3 from the active area, centred (start col 20-n)
+; rows 2-3 from the active area, centred, with a 1-cell gap between
+; glyphs when the name fits (n <= 13); the longest names (14, 16) stay tight
 jp_draw:
         lda #UI_ROW_JP
         sta zp_y
         lda #2
         jsr rows_clear
-        lda #UI_ROW_JP
-        sta zp_y
+        lda jp_n
+        cmp #14
+        bcs .jd_tight
+        lda #1                  ; gap = 1 cell; width = 3n-1, start = (41-3n)/2
+        sta glyph_gap
+        lda jp_n
+        clc
+        asl
+        adc jp_n                ; 3n
+        sta zp_utmp
+        lda #41
+        sec
+        sbc zp_utmp
+        lsr
+        jmp .jd_go
+.jd_tight: lda #0               ; no gap; width = 2n, start = 20 - n
+        sta glyph_gap
         lda #20
         sec
         sbc jp_n
-        sta zp_x
+.jd_go: sta zp_x
+        lda #UI_ROW_JP
+        sta zp_y
         jsr jp_colour
         sta zp_ucol
         lda jp_act_code
@@ -956,6 +970,21 @@ rays_update:
         stx rays_lit
         bne -
 +       rts
+
+; repaint every ray (dark), then relight the completed ones — used on
+; resume, where the centred PAUSED text overwrote the ray cells at row 12
+rays_redraw:
+        ldx #0
+-       stx zp_uidx
+        lda #COL_RAY
+        jsr ray_paint
+        ldx zp_uidx
+        inx
+        cpx #13
+        bne -
+        lda #0
+        sta rays_lit
+        jmp rays_update
 
 ; colour the sun rect (rows 17-20, cols 16-23) in A
 sun_colour:

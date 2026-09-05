@@ -3,15 +3,17 @@
 ; scroller.asm — 8-sprite Japanese glyph scroller in rows 22-24 and
 ; the 7-sprite 「ラジオ体操第一/第二」 logo in the top border.
 ;
-; Scroller: sprites 0-7 at Y 226, X-expanded, Y-expanded on PAL
-; (into the opened bottom border), brass, pitch 48 px (32 px glyph
-; + 16 px gap, 8 sprites = 384 px). Every frame each sprite moves
-; SCR_SPEED px left; when its logical X drops below -24 (fully in
-; the left border) it jumps +384 and the next cell of the queue is
-; converted into its slot: a 32-byte cell-order glyph becomes sprite
-; rows 0-15, bytes 0-1 (TL/TR -> rows 0-7, BL/BR -> rows 8-15), or
-; three 8x16 Latin half glyphs become bytes 0-2 of rows 0-15 (24 px =
-; the 48-px pitch, so English text runs on without gaps).
+; Scroller: sprites 0-7 at Y 226, Y-expanded on PAL (into the opened
+; bottom border), brass, pitch SCR_PITCH px (36). Japanese glyphs are
+; X-expanded (16 -> 32 px, so a 4 px gap at this pitch — the "slight
+; space" the design wants); English half-glyph cells are NOT expanded
+; (24 px, so they never overlap at 36 px) — per-sprite via scr_exp.
+; Every frame each sprite moves SCR_SPEED px left; when its logical X
+; drops below -24 (fully in the left border) it jumps +SCR_WRAP_PX and
+; the next cell of the queue is converted into its slot: a 32-byte
+; cell-order glyph becomes sprite rows 0-15, bytes 0-1 (TL/TR -> rows
+; 0-7, BL/BR -> rows 8-15), or three 8x16 Latin half glyphs become
+; bytes 0-2 of rows 0-15.
 ; Queue: the movement's Japanese cue, a blank, its English cue, a
 ; blank, looping; scroller_set_text switches at the next load.
 ; Negative X uses the raster wrap (PAL 504 px / NTSC 520 px lines):
@@ -28,7 +30,8 @@
 ; ---------------------------------------------------------------
 
 SCR_SPEED       = 2             ; px per frame (tunable)
-SCR_WRAP_PX     = 384           ; 8 sprites * 48 px
+SCR_PITCH       = 36            ; px between glyphs (was 48; Japanese sit closer)
+SCR_WRAP_PX     = 8*SCR_PITCH   ; the 8-sprite train wraps seamlessly
 SCR_PARK_Y      = 250           ; hidden sprites run at 250-291 in the right border (X 350),
                                 ; finished before the logo (line 8) and figure (66) commits;
                                 ; never park where a running sprite gets re-pointed
@@ -47,6 +50,10 @@ scroller_init:
         sta scr_mode
         sta scr_msb
         sta scr_xexp
+        ldx #7
+-       sta scr_exp,x
+        dex
+        bpl -
         lda #$ff
         sta scr_pending
         ldx zp_ntsc
@@ -70,7 +77,7 @@ scroller_init:
         ldx #1
 -       lda scr_x_lo-1,x
         clc
-        adc #48
+        adc #SCR_PITCH
         sta scr_x_lo,x
         lda scr_x_hi-1,x
         adc #0
@@ -116,7 +123,7 @@ scroller_set_text:
         ldx #1
 -       lda scr_x_lo-1,x
         clc
-        adc #48
+        adc #SCR_PITCH
         sta scr_x_lo,x
         lda scr_x_hi-1,x
         adc #0
@@ -210,7 +217,9 @@ scr_build:
 .msb1:  lda scr_msb
         ora bits8,x
         sta scr_msb
-.exp:   lda scr_xexp
+.exp:   lda scr_exp,x           ; Japanese glyphs are X-expanded; English is not
+        beq .bnext              ; (English at 24 px fits the 36-px pitch; expanded
+        lda scr_xexp            ;  it would overlap)
         ora bits8,x
         sta scr_xexp
 .bnext: dex
@@ -263,18 +272,27 @@ scr_load_next:
         eor #1
         sta scr_mode
         jsr scr_load_string
-.blank: lda #0
+.blank: ldx scr_cur
+        lda #0
+        sta scr_exp,x
+        lda #0
         jsr glyph_addr
         jmp glyph_to_slot
 .cell:  lda scr_mode
         bne .latin
+        ldx scr_cur             ; Japanese: X-expand this sprite
+        lda #1
+        sta scr_exp,x
         ldy scr_pos
         iny
         lda (zp_sstr),y
         inc scr_pos
         jsr glyph_addr
         jmp glyph_to_slot
-.latin: lda scr_pos             ; 3 half glyphs at string offset 1+3*pos
+.latin: ldx scr_cur             ; English: no X-expand
+        lda #0
+        sta scr_exp,x
+        lda scr_pos             ; 3 half glyphs at string offset 1+3*pos
         asl
         adc scr_pos
         tay
@@ -620,6 +638,7 @@ scr_x_lo:     !fill 8, 0        ; logical X, signed 16 bit
 scr_x_hi:     !fill 8, 0
 scr_load_flag: !fill 8, 0       ; set by scroller_move (IRQ), cleared by scroller_frame
 scr_vx:       !fill 8, 0        ; VIC X low bytes
+scr_exp:      !fill 8, 0        ; per-sprite X-expand (1 = Japanese glyph)
 scr_ptr:      !fill 8, 0        ; sprite pointers (slot numbers)
 scr_msb:      !byte 0
 scr_xexp:     !byte 0
