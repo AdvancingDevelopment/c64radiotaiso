@@ -14,7 +14,8 @@ the retro sibling of [radiotaiso.org](https://radiotaiso.org).
 
 Ready-made builds (`.d64` and `.prg`): https://advancing.itch.io/radio-taiso-64, the
 [GitHub releases](https://github.com/AdvancingDevelopment/c64radiotaiso/releases) or the
-[Internet Archive](https://archive.org/details/radio-taiso-64-v-1.0).
+[Internet Archive](https://archive.org/details/radio-taiso-64-v-1.0). Video of a full No.1 run:
+https://www.youtube.com/watch?v=zRThp9hkDdQ
 
 ## Build and run
 

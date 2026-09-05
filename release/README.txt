@@ -45,6 +45,7 @@ CREDITS
   Built with the ACME cross-assembler; tested in VICE 3.10.
 
   Download page ....... https://advancing.itch.io/radio-taiso-64
+  Video (No.1 run) .... https://www.youtube.com/watch?v=zRThp9hkDdQ
   Web version ......... https://radiotaiso.org
   Support the project . https://ko-fi.com/advancing
 
