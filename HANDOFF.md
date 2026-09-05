@@ -2,7 +2,9 @@
 
 Demo-grade C64 (6510/ACME) follow-along program for Radio Taiso No.1 / No.2 with the
 user's own music ("Asa no March" / "Hikari no March" from ~/taiso/score). Plan:
-`~/.claude/plans/let-s-make-a-c64-flickering-walrus.md`.
+`~/.claude/plans/let-s-make-a-c64-flickering-walrus.md`. Coded with assistance from
+Anthropic's Claude, across several Claude Code sessions; this file is the hand-off between
+them.
 
 ## Build / test
 
@@ -10,11 +12,17 @@ user's own music ("Asa no March" / "Hikari no March" from ~/taiso/score). Plan:
   `acme -D... --format cbm --outfile build/<name>.prg src/main.asm` (never plain `--outfile`,
   the PRG then lacks its load address).
 - `./test/boot_test.sh out.png [cycles] [prg] [extra x64sc args]` — headless VICE screenshot
-  (warp, dummy sound). ~19,656 cycles per PAL frame; VICE boot costs ~3.3 s before the PRG runs.
-  Review PNGs after `sips --resampleWidth 768 in.png --out big.png`.
+  (warp, dummy sound, NTSC unless `-pal` is among the extra args — NTSC is the default
+  system everywhere: `make run`, `make test`; `make run-pal` for PAL). Every VICE invocation
+  must carry `-default` or `+saveres`: the user's `~/.config/vice/vicerc` has
+  SaveResourcesOnExit=1, and flags saved by a stray run (dummy sound, NTSC, an off-screen
+  window position) silently change what `make run` does. ~19,656 cycles per PAL frame
+  (~17,095 NTSC); VICE boot costs ~3.3 s before the PRG runs. Review PNGs after
+  `sips --resampleWidth 768 in.png --out big.png`.
 - Test defines: `TEST_PLAY=1|2` (start routine 1/2 directly), `TEST_TICK=n` (clock jumps so the
   next tick is n; movement slot resolved), `TEST_FREEZE=1` (hold the clock once tick n is shown),
-  `DEBUG_HUD=1` (row 24: frame tick beat count mv period, hex), `RASTER_DEBUG=1` (border colour
+  `DEBUG_HUD=1` (row 24, NTSC row 22: frame tick beat count mv period, late switches, max
+  rasters, bad scroller-register frames, hex), `RASTER_DEBUG=1` (border colour
   per IRQ entry), `TEST_BORDER=1` (red $D020 to see the opened vertical border).
 - `-keybuf` cannot drive tests (no KERNAL keyscan) — use the defines.
 
@@ -24,12 +32,12 @@ All-RAM configuration `$01 = $35`; own vectors at $FFFA-$FFFF; no KERNAL/BASIC c
 
 | region | use |
 |---|---|
-| $0810-$3FFF | code segment: every `src/*.asm` module + song 1 (guard CODE_LIMIT=$4000); ends ~$325E |
+| $0810-$3FFF | code segment: every `src/*.asm` module + song 1 (guard CODE_LIMIT=$4000); ends ~$3169 |
 | $4000-$43FF | screen (bank 1), sprite pointers $43F8 |
 | $4400-$47FF | DYN_SLOTS: sprite slots 16..31 (scroller / logo double buffers, RAM) |
 | $4800-$4FFF | charset (`src/charset.asm`) |
 | $5000-$7FFF | FRAMES: sprite slots 64..255 (`src/gen_sprites.asm`); $7FFF must stay 0 |
-| $8000-$CFFF | data segment: gen_song2, gen_poses, gen_glyphs, gen_backdrop (12.9 KB / 20 KB used) |
+| $8000-$CFFF | data segment: gen_song2, gen_poses, gen_glyphs, gen_backdrop (11.9 KB / 20 KB used) |
 | $FFFA-$FFFF | IRQ/NMI/RESET vectors (written by hw_init; NMI is a bare `rti` stub) |
 
 Zero page: $02-$1F shared (see constants.asm), $20-$2F figure/choreo, $30-$3F music,
@@ -43,8 +51,9 @@ $40-$47 free (was digi), $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7
    MSB): mask with `and #$7f`/`#$77` before `sta $d011`.
 3. The 24-row switch that keeps the vertical border open has a 3-line window (lines 248-251).
    It is done in the scroller entry after its sprite writes, with a wait for line 248 — the
-   entry itself is straight-line stores (~260 cycles, sprites 4/5 last because the shins may
-   still be running) starting at line 235-239. A badline plus the 8 sprites' DMA can still
+   entry itself is straight-line stores (sprites 4/5 last because the shins may still be
+   running; since the commit was split it is only sprites 4/5 + the shared registers, from
+   line >= 228 on PAL). A badline plus the 8 sprites' DMA can still
    push a loop-based version past 251 in a few percent of frames (the border closes and the
    scroller vanishes for a frame — "dropouts"); `DEBUG_HUD` shows the late-switch counter and
    the max raster at entry/after writes/after switch (must stay < 251).
@@ -73,13 +82,16 @@ $40-$47 free (was digi), $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7
 
 ## Frame skeleton
 
-Raster IRQ chain (`irq.asm`, table `irq_lines`, ascending, all < 256):
-0 line 8 `irq_top` (25-row mode, `logo_commit`) · 1 line 50 `irq_figure` (`figure_commit`) ·
-2 split `irq_split` (`figure_split`) · 3 scroller line 235-239 `irq_scroll` (`scroller_commit`,
-then wait for line 248 and switch to 24-row mode → the vertical border never closes) ·
-4 line 249 `irq_bottom` (`clock_frame`, `music_frame`, `input_scan`, `inc zp_frame`).
+Raster IRQ chain (`irq.asm`, table `irq_lines`, 6 entries, ascending, all < 256):
+0 line 8 `irq_top` (25-row mode, `logo_commit`) · 1 line 66 `irq_figure` (`figure_commit`) ·
+2 split `irq_split` (`figure_split`) · 3 pre-commit line (≥ 196) `irq_scroll_pre`
+(`scroller_commit_pre`: glyph sprites 0-3, 6, 7) · 4 scroller line (PAL ≥ 228, NTSC ≥ 218,
+≤ 246) `irq_scroll` (`scroller_commit`: sprites 4/5 + shared registers; on PAL then wait for
+line 248 and switch to 24-row mode → the vertical border never closes) · 5 bottom entry
+(PAL 249; NTSC 244, waits for 248 and does the 24-row switch there) `irq_bottom`
+(`inc zp_frame`, `clock_frame`, `music_frame`, `scroller_move`, `input_scan`).
 Late entries are acked before being run by hand; `$D011` read-modify-writes mask bit 7.
-`figure_render` rewrites `irq_lines+2` (split) and `irq_lines+3` (scroller line, ≥ 219, ≤ 246)
+`figure_render` rewrites `irq_lines+2` (split), `+3` (pre-commit) and `+4` (scroller line)
 each tick; they must stay ascending. Handlers run with A/X/Y saved by the dispatcher.
 
 Clock (`clock.asm`): tick = 1/8 beat, `zp_tick` 16-bit, `zp_beat` (low byte), `zp_count8`
@@ -123,7 +135,7 @@ size toggle (`figure_set_scale` still exists), the V voice toggle, and the L lan
   cycle tick 0. `choreo_tick`: advance the decoder to `zp_local_tick` (sequential; on a jump
   replay from 0) → current pose record `pose_cur`.
 - `figure_render` (main loop, per tick): pose → shadow block (8 × X/Y, MSB, pointers, plus the
-  shin set), and update `irq_lines+2/+3`. `figure_commit` (IRQ line 50): write ALL sprite 0-7
+  shin set), and update `irq_lines+2/+3/+4`. `figure_commit` (IRQ line 66): write ALL sprite 0-7
   registers the figure needs (positions, MSB, pointers, `$D017/$D01D`, colours) — other modules
   reuse the same sprites later in the frame. `figure_split` (IRQ): sprites 4/5 → shins.
   `figure_init` (PLAY start), `figure_hide`, `figure_set_scale` (A = `fig_scale`, 1 = 2×).
@@ -134,43 +146,87 @@ size toggle (`figure_set_scale` still exists), the V voice toggle, and the L lan
 
 ### UI + text + border sprites — `src/text.asm` (hooks below), `src/charset.asm`, `src/title.asm`, `src/scroller.asm`, `src/gen_glyphs.asm`, `src/gen_backdrop.asm`, `tools/glyphs.py`, `tools/backdrop.py`, `tools/text.json`
 - Hooks called by `play.asm`: `ui_play_init`, `ui_movement`, `ui_beat`, `ui_frame`, `ui_tempo`,
-  `ui_toggle_lang`, `ui_pause_show`, `ui_pause_hide`; by `main.asm`: `enter_title`, `step_title`
-  (must set `zp_routine` and `jmp enter_play`), `enter_finish`, `step_finish` (→ `enter_title`).
-- Scroller/logo: `scroller_init`, `scroller_set_text`, `scroller_frame`, `scroller_commit` (IRQ,
-  line from `irq_lines+3`), `scroller_hide`, `logo_commit` (IRQ line 8), `logo_show`, `logo_hide`.
-  Sprite slots 16..31 at DYN_SLOTS are theirs. Sprites 0-7 registers may be rewritten at the
-  scroller line and at line 8 (the figure rewrites them at line 50).
+  `ui_pause_show`, `ui_pause_hide`; by `title.asm`'s `enter_finish`: `ui_finish`; by
+  `main.asm`: `enter_title`, `step_title` (must set `zp_routine` and `jmp enter_play`),
+  `enter_finish`, `step_finish` (→ `enter_title`). The elapsed clock (`ui_sec`/`ui_min`,
+  advanced in `ui_frame`) holds while paused and stops in ST_FINISH.
+- Scroller/logo: `scroller_init`, `scroller_set_text`, `scroller_frame`, `scroller_commit_pre` /
+  `scroller_commit` (IRQ, lines from `irq_lines+3/+4`), `scroller_move` (bottom IRQ),
+  `scroller_hide`, `scroller_show`, `logo_commit` (IRQ line 8), `logo_show`, `logo_hide`.
+  Sprite slots 16..31 at DYN_SLOTS are theirs: slots 16+i / 24+i are the two buffers of
+  scroller sprite i during play; the logo uses 24-30 on the title only. The scroller is
+  English only: 8 X-expanded sprites, 3 half-width Latin glyphs (16 px per character) each,
+  48 px apart = one seamless 384 px train; the cue text (`mv_cue_en`) loops with a blank
+  cell between repeats. All position/pointer changes happen in `scroller_move` (bottom IRQ):
+  a sprite wraps +384 px only once the main loop has loaded its next cell into the spare
+  slot, so glyphs never change on screen and positions/pointers always agree with the
+  frame's commit. Sprites 0-7 registers may be rewritten at the scroller lines and at
+  line 8 (the figure rewrites them at line 66).
 - Screen rows: 0 routine title + elapsed clock, 1 English name (white), 2-3 Japanese name
   (white, 16 glyphs max), 4-20 figure band (+ sun/rays backdrop, count block cols 1-6,
-  set/pips cols 32-38), 20 horizon, 21 stations, 22 `TEMPO: 12345` bar (current level in
-  brass), 23-24 scroller zone. The pause overlay hides the figure and centres PAUSED on
-  row 12. Palette in constants.asm.
+  set/pips cols 32-38), 20 horizon, 21 `TEMPO: 12345` bar (current level in brass), 22
+  stations (progress dots), 23-24 scroller zone; on NTSC the horizon, tempo bar and dots sit
+  one row higher (`ui_dy`). The pause overlay hides the figure and centres PAUSED on row 12.
+  The finish screen drops the tempo bar and prints "space or fire: main menu" on row 23.
+  Palette in constants.asm.
 
 ## Play-state extras (play.asm)
 
-- `play_sec` / `play_min` (binary) = elapsed time, advanced per frame with `zp_ntsc`-aware fps.
+- `play_sec` / `play_min` (binary) = elapsed time, advanced per frame with `zp_ntsc`-aware fps
+  (currently unread: the displayed clock is text.asm's `ui_sec`/`ui_min`).
 - `play_finish` (end of slot 13): sets `ANIM_BOW`, hides the scroller, jumps to `enter_finish`;
   the main loop keeps calling `finish_tick` (choreo/figure/ui housekeeping) in ST_FINISH.
 
 ## Memory budget (2026-09-04, integrated)
 
-code 10.8 KB / 14.3 KB (song 1 data lives here), frames 9.9 KB + backdrop in the VIC-bank
-spare, data 12.9 KB / 20 KB. The digi voice (staging block + `gen_digi2`, ~11 KB) was removed
-at the user's request, freeing the $E000 block and ~6 KB of the data segment. Keep `$7FFF` = 0.
+code 10.3 KB / 14.3 KB (song 1 data lives here), frames 9.9 KB + backdrop in the VIC-bank
+spare, data 11.9 KB / 20 KB (the Japanese scroller cues and their glyphs were dropped on
+2026-09-04). The digi voice (staging block + `gen_digi2`, ~11 KB) was removed at the user's
+request, freeing the $E000 block and ~6 KB of the data segment. Keep `$7FFF` = 0.
 
-## Verification status (2026-09-04, final integration)
+## Verification status (2026-09-04, after the feedback rounds)
 
-- `make test`: 34 screenshots OK (title PAL/NTSC, border, HUD, raster, 26 movement screens,
-  boundary, finish, NTSC movement). Full-length runs reach the finish screen on PAL (3:08)
-  and NTSC.
-- 60 s HUD runs (voice removed): NTSC 0 late border switches, switch max line 250, 0 bad
-  register frames; PAL 0 late.
+- `make test`: 35 screenshots OK (NTSC: title, HUD, raster, 26 movement screens, boundary,
+  finish; PAL: title, open border, HUD, one movement). Full-length runs reach the finish
+  screen on PAL (3:08) and NTSC.
+- 40-60 s HUD runs (English scroller, IRQ-side wraps and cuts): NTSC and PAL 0 late border
+  switches, switch max line 248, 0 bad register frames.
 - Audio (`check_wav.py`): song 1 PAL 8/8, song 2 PAL 8/10 (two repeated-pitch bass probes
   report +40 ms — a detector limitation), song 1 NTSC within ±32 ms.
-- Not yet verified by a human: how it sounds and feels in real time (`make run`).
+- The user runs it in real time (`make run`, 2026-09-04); the feedback rounds are in the log.
 
 ## Status log
 
+- 2026-09-04 (feedback round 3): NTSC is the default system (`make run` = NTSC, `make run-pal`;
+  `boot_test.sh` adds `-ntsc` unless `-pal` is passed; the test suite runs NTSC with PAL
+  variants title_pal/border/hud_pal/pal_m5). The progress dots moved below the tempo bar
+  (rows 21 tempo / 22 dots on PAL, 20 / 21 on NTSC via `ui_dy`; the NTSC HUD row is 22).
+  The elapsed clock stops when the finish screen is reached (`ui_frame` skips the count in
+  ST_FINISH). Title: "radiotaiso.org" centred on row 22 (white) above the copyright line.
+  Finish: "space or fire: main menu" on row 23 (any key or fire still returns to the title).
+- 2026-09-04 (sun flash): the 3-frame brass flash of the sun on every count 1 (`sun_t`) is
+  gone — at 60 ms it read as a flicker. The sun stays orange during play and turns brass on
+  the finish screen only; the per-beat station pulse (6 frames, white) remains.
+- 2026-09-04 (make run fix): `make run` showed nothing and printed sound-buffer overflow
+  warnings — `~/.config/vice/vicerc` had SoundDeviceName=dummy, MachineVideoStandard=NTSC and
+  Window0Xpos=2431 saved (SaveResourcesOnExit=1) by an earlier VICE run. The config was
+  cleaned (backup `vicerc.bak-20260904`), `run`/`run-ntsc` pass `-pal`/`-ntsc` and `+saveres`,
+  `boot_test.sh` passes `+saveres` too.
+- 2026-09-04 (scroller pass): the bottom scroller is English only and seamless. Sprites are
+  X-expanded and 48 px apart (was 36 px with unexpanded 24 px English cells, which read as
+  3-character chunks with 12 px gaps and left the right third of the picture empty); the
+  eight sprites form one 384 px train of 24 characters that covers the 320 px picture, and
+  the side borders (still closed) hide the wrap. Each sprite double-buffers slots 16+i /
+  24+i; `scroller_frame` loads the next 3 characters into the spare slot when the IRQ asks
+  (flag 1 -> 2) and `scroller_move` (bottom IRQ) does the wrap + pointer flip, the cut at a
+  movement change (`scr_cut` 1 = loading, 2 = apply) and the un-hide (`scr_unhide`) — so no
+  scroller register changes between a frame's commits and the HUD check at line 249/244.
+  A hidden scroller (pause) stands still. The Japanese cue strings and their glyphs were
+  dropped from `gen_glyphs.asm` (data segment 12.9 -> 11.9 KB; `cue_jp` removed from
+  text.json). Verified: PAL/NTSC 40 s HUD runs from the start and a 60 s NTSC run through
+  the finish: 0 late switches, 0 bad register frames (before the IRQ-side flip the NTSC
+  runs counted 1-3, one per cut); screenshots of routine 1 movements 2/5 on PAL/NTSC and
+  the boundary run show continuous text.
 - 2026-09-04 (UI pass 2): row 1 shows the English name centred (the n/13 counter is dropped —
   the progress dots already show it); elapsed clock moved to col 36 (flush right); the Japanese
   name on rows 2-3 gets a 1-cell gap between glyphs when it fits (n<=13; the 14/16-glyph names

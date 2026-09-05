@@ -1,6 +1,7 @@
 ; ---------------------------------------------------------------
 ; RADIO TAISO 64 — demo-grade radio calisthenics for the C64
 ; (C) 2026 Advancing Development — original music, original code.
+; Coded with assistance from Anthropic's Claude.
 ; Build: acme src/main.asm  ->  build/taiso.prg
 ; Test builds: -DTEST_PLAY=1|2 (start routine directly), -DDEBUG_HUD=1,
 ;   -DRASTER_DEBUG=1, -DTEST_TICK=n (jump the clock to tick n at start),

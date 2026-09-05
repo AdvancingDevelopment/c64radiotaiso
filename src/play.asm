@@ -109,7 +109,7 @@ step_play:
         beq .no_beat
         lda #0
         sta zp_beat_flag
-        jsr ui_beat             ; digit, words, pips, sun pulse
+        jsr ui_beat             ; digit, words, pips, station pulse
 .no_beat:
         lda zp_mv_flag
         beq .no_mv
@@ -261,7 +261,7 @@ debug_hud:
         lda #24
         ldx zp_ntsc
         beq +
-        lda #21                 ; NTSC: row 24 is under the scroller
+        lda #22                 ; NTSC: rows 23-24 hold the scroller, 21 the dots
 +       sta zp_y
         jsr cell_ptr
         ldy #0

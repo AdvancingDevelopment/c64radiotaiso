@@ -4,10 +4,10 @@
 ; Title: the sprite logo (scroller.asm, wobbling in the top border
 ; on PAL / rows 1-4 on NTSC) over the sunrise backdrop, routine
 ; selection (keys 1/2, joystick up/down + fire, RETURN/SPACE),
-; 第一/第二 glyphs from area A, key help, credits, PAL/NTSC tag.
-; Finish: お疲れさまでした on rows 2-3, "well done!", elapsed time,
-; all stations/rays brass, the finish cue in the scroller, the
-; spoken phrase; any key/fire returns to the title.
+; 第一/第二 glyphs from area A, key help, radiotaiso.org, credits.
+; Finish: お疲れさまでした on rows 2-3, "well done!", the elapsed
+; time frozen, all stations/rays brass, "space or fire: main menu"
+; on row 23; any key/fire returns to the title.
 ; Zero page $70-$7f.
 ; Test builds: -DTEST_FINISH=1|2 enters the finish screen of routine
 ; 1|2 straight from the title (no TEST_PLAY needed).
@@ -49,6 +49,7 @@ txt_start:   !scr "return, space or fire: start", $ff
 txt_credit:  !byte $1b, $20      ; (c) glyph
              !scr "advancing development 2026", $ff
 txt_kofi:    !scr "buy me a coffee: ko-fi.com/advancing", $ff
+txt_site:    !scr "radiotaiso.org", $ff
 txt_tkeys:   !scr "space:pause  q:quit  1-5:tempo", $ff
 sel_row:     !byte TITLE_ROW_SEL1, TITLE_ROW_SEL2
 sel_code:    !byte AREA_A_CODE, AREA_A_CODE+8   ; 第一 / 第二 in area A
@@ -81,6 +82,7 @@ enter_title:
         +print 13,  6, txt_t64,    COL_BRASS
         +print  5,  8, txt_tkeys,  COL_DIM
         +print  6, 16, txt_start,  COL_GREY
+        +print 13, 22, txt_site,   COL_TEXT
         +print  6, 23, txt_credit, COL_GREY
         +print  2, 24, txt_kofi,   COL_BRASS
         lda zp_routine

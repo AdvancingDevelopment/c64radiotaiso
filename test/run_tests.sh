@@ -1,6 +1,7 @@
 #!/bin/sh
 # Build the standard test variants and collect screenshots into build/test/.
 # Each variant: name | acme defines | cycles | extra x64sc args
+# NTSC is the default system (boot_test.sh); the PAL variants pass -pal.
 set -e
 cd "$(dirname "$0")/.."
 mkdir -p build/test
@@ -13,9 +14,10 @@ run() {
 }
 echo "== title / border / hud"
 run title      ""                                            4000000
-run title_ntsc ""                                            4000000 -ntsc
-run border     "-DTEST_BORDER=1"                             4000000
+run title_pal  ""                                            4000000 -pal
+run border     "-DTEST_BORDER=1"                             4000000 -pal
 run hud        "-DTEST_PLAY=1 -DDEBUG_HUD=1"                 30000000
+run hud_pal    "-DTEST_PLAY=1 -DDEBUG_HUD=1"                 30000000 -pal
 run raster     "-DTEST_PLAY=1 -DRASTER_DEBUG=1"              8000000
 echo "== movements (routine 1, signature phases)"
 # slot starts: 128 384 640 896 1152 1408 1664 1920 2048 2304 2432 2688 2816
@@ -31,8 +33,8 @@ for t in 148 391 649 913 1165 1424 1670 1930 2055 2312 2434 2695 2838; do
   run "r2_m$i" "-DTEST_PLAY=2 -DTEST_TICK=$t -DTEST_FREEZE=1" 8000000
   i=$((i+1))
 done
-echo "== boundary crossing (free run from 8 ticks before movement 3)"
+echo "== boundary crossing (free run from 8 ticks before movement 3), finish, PAL"
 run boundary   "-DTEST_PLAY=1 -DTEST_TICK=376"               9000000
 run finish     "-DTEST_PLAY=1 -DTEST_TICK=3068"              9000000
-run ntsc_m5    "-DTEST_PLAY=1 -DTEST_TICK=1165 -DTEST_FREEZE=1" 8000000 -ntsc
+run pal_m5     "-DTEST_PLAY=1 -DTEST_TICK=1165 -DTEST_FREEZE=1" 8000000 -pal
 echo "done: $(ls build/test/*_big.png | wc -l) screenshots"

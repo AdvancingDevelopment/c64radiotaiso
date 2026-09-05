@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """puppet.py — sprite puppet generator for Radio Taiso 64 (stdlib only).
 
-Reads tools/out/poses.json (from tools/sample_rig.mjs), adds the hand-authored
-bow timeline (id 19), quantizes every tick of every timeline to a set of
+Reads tools/out/poses.json (from tools/sample_rig.mjs), adds the scripted bow
+timeline (id 19, keyframes defined in this file), quantizes every tick of every timeline to a set of
 shared body-part sprite frames, rasterizes the frames (big pixels: every
 sprite is X/Y-expanded 2x), delta-codes the per-tick pose records and writes
 
@@ -106,7 +106,8 @@ def s8(v):
 
 
 # ---------------------------------------------------------------------------
-# the bow (timeline 19): 16 hand-authored keyframes, 4 ticks apart, linearly
+# the bow (timeline 19): 16 keyframes defined here (not sampled from the rig),
+# 4 ticks apart, linearly
 # interpolated. Profile (facing left), torso folds ~60 degrees forward and
 # back, arms hanging plumb, head curling with the spine.
 # ---------------------------------------------------------------------------

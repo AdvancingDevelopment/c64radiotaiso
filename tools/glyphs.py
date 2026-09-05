@@ -4,19 +4,18 @@
 Reads tools/text.json and the Shinonome 16 sources (tools/fonts/*.bit —
 BDF-style files whose bitmap rows are written with '.' and '@'; the
 kanji/kana file is JIS X 0208, ENCODING = row/col code, mapped to Unicode
-via EUC-JP), collects every glyph used by the names, cues, titles and count
-words, and writes src/gen_glyphs.asm (data segment):
+via EUC-JP), collects every glyph used by the names, titles and count words, and
+writes src/gen_glyphs.asm (data segment):
 
   glyph_data   N x 32 bytes, page aligned, glyph 0 = blank.
                Cell order TL,TR,BL,BR (8 bytes each) = 4 consecutive
                charset codes; the scroller converts to sprite rows.
   latin_data   M x 16 bytes, 8x16 half-width Latin glyphs (index 0 = space)
-               for the English scroller cues (two per sprite cell).
+               for the English scroller cues (three per sprite cell).
   mv_jp_lo/hi[30]      routine*15+slot -> !byte n, glyph idx...   (n <= 16)
   mv_name_lo/hi[30]    English name, !scr, $ff terminated        (<= 29)
-  mv_cue_lo/hi[30]     Japanese scroller cue, !byte n, idx...     (n <= 16)
   mv_cue_en_lo/hi[30]  English scroller cue: !byte cells, (a,b,c)... (3 half
-                       glyphs = 24 sprite px per cell, <= 38 chars)
+                       glyphs per X-expanded sprite = 48 px, <= 38 chars)
   kana_lo/hi[8], romaji_lo/hi[8], title_jp_lo/hi[2]
 
 Also writes build/glyphs.png (a review sheet). Python 3 stdlib only.
@@ -31,7 +30,7 @@ LATIN = os.path.join(ROOT, "tools", "fonts", "latin1_src.bit")
 OUT = os.path.join(ROOT, "src", "gen_glyphs.asm")
 PNG = os.path.join(ROOT, "build", "glyphs.png")
 
-MAX_JP = 16          # glyphs per Japanese name / cue
+MAX_JP = 16          # glyphs per Japanese name
 MAX_NAME = 29        # English name characters
 MAX_CUE_EN = 38      # English cue characters
 MAX_DATA = 6144      # glyph + latin bitmap bytes
@@ -170,7 +169,7 @@ def main():
     routines = text["routines"]
     if len(routines) != 2:
         fail("need exactly 2 routines")
-    slots = []            # (jp idx list, name, cue idx list, cue_en idx list)
+    slots = []            # (jp idx list, name, cue_en idx list, slot)
     for r, rt in enumerate(routines):
         if len(rt["slots"]) != SLOTS:
             fail(f"routine {r+1}: need {SLOTS} slots")
@@ -178,7 +177,6 @@ def main():
             what = f"routine {r+1} slot {k} ({sl['id']})"
             slots.append((jp_string(sl["jp"], what + " jp"),
                           scr_string(sl["name"], what + " name", MAX_NAME),
-                          jp_string(sl["cue_jp"], what + " cue_jp"),
                           latin_string(sl["cue_en"], what + " cue_en"),
                           sl))
     titles = [jp_string(rt["title_jp"], f"title {r+1}") for r, rt in enumerate(routines)]
@@ -227,7 +225,7 @@ def main():
     # dedupe identical strings between routines
     w("; --- strings ---")
     seen = {}
-    labels_jp, labels_name, labels_cue, labels_cue_en = [], [], [], []
+    labels_jp, labels_name, labels_cue_en = [], [], []
 
     def dedupe(kind, key, make):
         k = (kind, tuple(key))
@@ -236,12 +234,11 @@ def main():
             make(seen[k])
         return seen[k]
 
-    for n, (jp, name, cue, cue_en, sl) in enumerate(slots):
+    for n, (jp, name, cue_en, sl) in enumerate(slots):
         r, k = divmod(n, SLOTS)
         cm = f"r{r+1} s{k} {sl['id']}"
         labels_jp.append(dedupe("sjp", jp, lambda lb: emit_jp(lb, jp, cm + " " + sl["jp"])))
         labels_name.append(dedupe("snm", name, lambda lb: w(f'{lb}: !scr "{name}", $ff  ; {cm}')))
-        labels_cue.append(dedupe("scj", cue, lambda lb: emit_jp(lb, cue, cm + " " + sl["cue_jp"])))
         labels_cue_en.append(dedupe("sce", cue_en, lambda lb: emit_latin(lb, cue_en, cm + " " + sl["cue_en"])))
     for i, t in enumerate(titles):
         emit_jp(f"stitle_{i}", t, routines[i]["title_jp"])
@@ -260,7 +257,6 @@ def main():
     w("; index = routine*15 + slot")
     table("mv_jp", labels_jp)
     table("mv_name", labels_name)
-    table("mv_cue", labels_cue)
     table("mv_cue_en", labels_cue_en)
     table("title_jp", [f"stitle_{i}" for i in range(2)])
     table("kana", [f"skana_{i}" for i in range(8)])
@@ -314,8 +310,8 @@ def main():
         print("glyph set: " + "".join(order))
         print("latin set: " + "".join(lorder))
         longest = max(len(s[0]) for s in slots)
-        print(f"longest name {longest} glyphs, longest cue {max(len(s[2]) for s in slots)} glyphs, "
-              f"longest en cue {max(len(s[3]) for s in slots)//3} cells")
+        print(f"longest name {longest} glyphs, "
+              f"longest en cue {max(len(s[2]) for s in slots)//3} cells")
         print(f"sheet: {PNG}")
 
 

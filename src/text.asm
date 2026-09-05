@@ -35,11 +35,11 @@ UI_ROW_SET      = 12            ; "set n/m"
 UI_ROW_PIPS     = 13            ; 8 beat pips
 UI_ROW_KANA     = 14            ; kana count word, rows 14-15
 UI_ROW_ROMAJI   = 17
-UI_ROW_STATIONS = 21
+UI_ROW_STATIONS = 22            ; progress dots, under the tempo bar (NTSC: 21, ui_dy)
 UI_COL_SET      = 32
 UI_COL_PIPS     = 32
 UI_COL_STATION0 = 8             ; stations at cols 8,10,..,32
-UI_ROW_TEMPO    = 22            ; bottom tempo bar row (clear of the scroller on both systems)
+UI_ROW_TEMPO    = 21            ; tempo bar, under the horizon (NTSC: 20, ui_dy)
 UI_COL_TEMPO    = 14            ; "tempo: 12345" centred (12 chars)
 UI_COL_CLOCK    = 36            ; elapsed m:ss, flush to the right edge (cols 36-39)
 AREA_A_CODE     = $80           ; charset codes of area A (B = $c0)
@@ -71,7 +71,6 @@ ui_play_init:
         sta ui_sec
         sta ui_min
         sta ui_fcnt
-        sta sun_t
         sta pulse_t
         lda zp_frame
         sta ui_lastframe
@@ -152,7 +151,9 @@ ui_movement:
         txa
         jmp scroller_set_text
 
-; new beat: big digit, romaji, kana, pips, set, sun/station pulses
+; new beat: big digit, romaji, kana, pips, set, station pulse (the sun
+; keeps its colour during play — a 3-frame brass flash on count 1 read
+; as a flicker; it only turns brass on the finish screen)
 ui_beat:
 !ifdef TEST_GLYPHSHEET {
         rts
@@ -162,14 +163,7 @@ ui_beat:
         jsr kana_draw
         jsr pips_draw
         jsr set_draw
-        lda zp_count8
-        cmp #1
-        bne +
-        lda #COL_BRASS
-        jsr sun_colour
-        lda #3
-        sta sun_t
-+       lda zp_cur_mv
+        lda zp_cur_mv
         beq +
         cmp #MV_SLOTS-1
         bcs +
@@ -181,7 +175,7 @@ ui_beat:
         sta pulse_t
 +       rts
 
-; every frame: glyph prefetch, elapsed clock, pulse decays
+; every frame: glyph prefetch, elapsed clock, station pulse decay
 ui_frame:
 !ifdef TEST_GLYPHSHEET {
         rts
@@ -204,6 +198,9 @@ ui_frame:
         stx ui_lastframe
         ldx zp_tick_hold
         bne .pulses             ; paused: the clock holds
+        ldx zp_state
+        cpx #ST_FINISH
+        beq .pulses             ; finished: the clock stops at the final time
         clc
         adc ui_fcnt
         sta ui_fcnt
@@ -221,13 +218,7 @@ ui_frame:
         inc ui_min
 +       jsr clock_draw
 .pulses:
-        lda sun_t
-        beq +
-        dec sun_t
-        bne +
-        lda #COL_SUN
-        jsr sun_colour
-+       lda pulse_t
+        lda pulse_t
         beq +
         dec pulse_t
         bne +
@@ -237,7 +228,7 @@ ui_frame:
         lda #COL_VERMILLION
         +st_col_store
 +
-!ifdef TEST_SCRDBG {            ; row 23: scr_idx mode n pos pending x1
+!ifdef TEST_SCRDBG {            ; row 23: scr_idx n pos next ptr0 x1 str
         lda #0
         sta zp_x
         lda #23
@@ -247,16 +238,16 @@ ui_frame:
         lda scr_idx
         jsr put_hex
         iny
-        lda scr_mode
-        jsr put_hex
-        iny
         lda scr_n
         jsr put_hex
         iny
         lda scr_pos
         jsr put_hex
         iny
-        lda scr_pending
+        lda scr_next
+        jsr put_hex
+        iny
+        lda scr_ptr
         jsr put_hex
         iny
         lda scr_x_hi+1
@@ -276,6 +267,8 @@ fps_tbl: !byte 50, 60
 ; (clock_tempo 0..4 = keys 1..5 = 80..120 %) highlighted in brass
 ui_tempo:
         lda #UI_ROW_TEMPO
+        sec
+        sbc ui_dy               ; NTSC: one row up, like the horizon and the dots
         sta zp_y
         lda #UI_COL_TEMPO
         sta zp_x
@@ -326,23 +319,26 @@ ui_pause_hide:
         jsr rays_redraw         ; the rays ran through those cells
         jmp scroller_show
 txt_paused: !scr "paused", $ff
+txt_menu_hint: !scr "space or fire: main menu", $ff
 
 ; finish screen texts (called by title.asm's enter_finish)
 ui_finish:
         lda #MV_SLOTS-1
         sta zp_cur_mv
-        lda #22                 ; NTSC key hint row: not valid on the finish screen
+        lda #UI_ROW_TEMPO       ; no tempo bar on the finish screen
+        sec
+        sbc ui_dy
         sta zp_y
         lda #1
         jsr rows_clear
+        +print 8, 23, txt_menu_hint, COL_GREY
         jsr ui_row1             ; "well done!"
         jsr jp_show             ; お疲れさまでした
         jsr stations_draw       ; all done -> brass
         jsr rays_update         ; all 13 rays lit
         lda #COL_BRASS
-        jsr sun_colour
+        jsr sun_colour          ; brass sun = done
         lda #0
-        sta sun_t
         sta pulse_t
         jsr set_draw            ; clears "set n/m"
         ; clear the count block (rows 8-17, cols 1-6) and the pips
@@ -1066,7 +1062,7 @@ bd_draw:
         bne -
         rts
 
-; elapsed m:ss at row 0 col 35
+; elapsed m:ss at row 0 col 36
 clock_draw:
         lda #0
         sta zp_y
@@ -1098,5 +1094,4 @@ ui_min:       !byte 0
 ui_fcnt:      !byte 0
 ui_lastframe: !byte 0
 rays_lit:     !byte 0           ; rays already painted brass
-sun_t:        !byte 0           ; sun flash frames left
 pulse_t:      !byte 0           ; station pulse frames left
