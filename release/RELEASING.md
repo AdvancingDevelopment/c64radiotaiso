@@ -127,7 +127,34 @@ Every other listing wants a stable URL and most reviewers look for source.
   new homebrew; send the itch link, three screenshots and the one-paragraph
   blurb.
 
-## 7. Announce
+## 7. Video (YouTube, itch page, social)
+
+One full run of each routine, recorded inside VICE so the audio is the SID
+output, not a microphone.
+
+1. `make run` (NTSC; `make run-pal` shows the border scroller instead). On the
+   title screen open Media > Record movie... in VICE, choose the FFMPEG driver,
+   container mp4, video codec H.264 (or MPEG-4 if the emulator drops below
+   100 % speed while encoding), audio AAC, and start recording.
+2. Press `1` (or `2`) and RETURN, let the routine run to the finish screen
+   (about 3:10), leave the finish screen up for a few seconds, then
+   Media > Stop recording. Repeat for the other routine.
+3. `tools/video.sh raw-no1.mp4 radio-taiso-64-no1.mp4` upscales 4x with
+   crisp pixels, letterboxes to 1920x1080 and encodes H.264/AAC. Trim the
+   title-screen wait with the optional arguments: `tools/video.sh raw.mp4
+   out.mp4 3 200` starts 3 s in and keeps 200 s.
+4. YouTube: title "Radio Taiso 64 – Radio Taiso No.1 on the Commodore 64",
+   description = the itch description plus the itch and GitHub links,
+   tags c64, commodore 64, radio taiso, chiptune, SID, demoscene, homebrew.
+   A 20-30 s cut of the same file makes the social clip.
+5. Put the video link on the itch page (video field) and in the README.
+6. Fallback if the Record movie dialog offers no ffmpeg driver: record the
+   VICE window with QuickTime (File > New Screen Recording, video only), run
+   VICE with `-soundrecdev wav -soundrecarg audio.wav` for the sound, line the
+   two up on the first note, mux with `ffmpeg -i screen.mov -i audio.wav -map
+   0:v -map 1:a -shortest muxed.mp4`, then run tools/video.sh on the result.
+
+## 8. Announce
 
 - radiotaiso.org: a "C64 version" page/link to the itch page (and the
   GitHub release), with one screenshot and the keys.
@@ -140,7 +167,7 @@ Every other listing wants a stable URL and most reviewers look for source.
   the Commodore Users groups pick up itch links.
 - Ko-fi: a post there pointing at the release, since the program links to it.
 
-## 8. After the release
+## 9. After the release
 
 - Watch CSDb/Lemon64/itch comments for real-hardware reports (PAL vs NTSC,
   SD2IEC loading, joystick ports).
