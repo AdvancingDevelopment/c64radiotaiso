@@ -13,10 +13,9 @@ build/taiso.prg: $(SRC)
 
 .PHONY: run test clean gen d64
 
-# VICE 3.10: host vsync on. -sidmodel 0 = 6581: the SID music (filter routing, cutoff
-# sweeps) is tuned on the 6581; VICE defaults to the 8580 here, whose filter sounds
-# different. Use -sidmodel 1 for the 8580 if you prefer it.
-VICEOPTS ?= -VICIIvsync -sidmodel 0 -residsamp 1
+# VICE 3.10: host vsync on. -sidmodel 1 = 8580 (the default C64C sound).
+# Use -sidmodel 0 for the older 6581 filter if you prefer it.
+VICEOPTS ?= -VICIIvsync -sidmodel 1 -residsamp 1
 
 run: build/taiso.prg
 	$(X64SC) $(VICEOPTS) -autostartprgmode 1 build/taiso.prg

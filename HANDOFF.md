@@ -97,9 +97,10 @@ per beat `ui_beat`; per movement `choreo_set_anim` + `ui_movement`; every frame
 `mv_anim_r1/r2`, timeline ids 0..19 documented there).
 
 Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code), `keys_stable`.
-Bindings: 1/2 routine (title) or tempo 80/90 % (play), 3/4/5 tempo 100/110/120 %, L language,
-SPACE pause, Q / RUN-STOP title, RETURN start — no function keys. Removed at the user's
-request: the 1x size toggle (`figure_set_scale` still exists) and the V voice toggle.
+Bindings: 1/2 routine (title) or tempo 80/90 % (play), 3/4/5 tempo 100/110/120 %, SPACE pause,
+Q / RUN-STOP title, RETURN start — no function keys. Removed at the user's request: the 1x
+size toggle (`figure_set_scale` still exists), the V voice toggle, and the L language toggle
+(both the English name on row 1 and the Japanese name on rows 2-3 are now always white).
 
 ## Module contracts (each module owns its files; do not edit others' files)
 
@@ -139,9 +140,11 @@ request: the 1x size toggle (`figure_set_scale` still exists) and the V voice to
   line from `irq_lines+3`), `scroller_hide`, `logo_commit` (IRQ line 8), `logo_show`, `logo_hide`.
   Sprite slots 16..31 at DYN_SLOTS are theirs. Sprites 0-7 registers may be rewritten at the
   scroller line and at line 8 (the figure rewrites them at line 50).
-- Screen rows: 0 title/tempo/clock, 1 English name, 2-3 Japanese name (16 glyphs max), 4-20
-  figure band (+ sun/rays backdrop, count block cols 1-6, set/pips cols 32-38), 20 horizon,
-  21 stations, 22-24 scroller zone. Palette in constants.asm.
+- Screen rows: 0 routine title + elapsed clock, 1 English name (white), 2-3 Japanese name
+  (white, 16 glyphs max), 4-20 figure band (+ sun/rays backdrop, count block cols 1-6,
+  set/pips cols 32-38), 20 horizon, 21 stations, 22 `TEMPO: 12345` bar (current level in
+  brass), 23-24 scroller zone. The pause overlay hides the figure and centres PAUSED on
+  row 12. Palette in constants.asm.
 
 ## Play-state extras (play.asm)
 
@@ -168,6 +171,12 @@ at the user's request, freeing the $E000 block and ~6 KB of the data segment. Ke
 
 ## Status log
 
+- 2026-09-04 (UI pass): default SID back to 8580 (`make run`); removed the on-title PAL/NTSC
+  tag and the `asa no march / hikari no march` subtitle; recentred the title and moved its
+  key hint clear of the sun; tempo moved off row 0 to a bottom `TEMPO: 12345` bar (row 22,
+  current level highlighted, default 3); PAUSED now centres on row 12 with the figure hidden
+  and no resume/language help lines; the L language toggle is gone and both name rows are
+  always white. NTSC 40 s HUD after: 0 late border switches, switch max 248, 0 bad frames.
 - 2026-09-04 (voice removed): at the user's request the digitised Japanese voice was
   deleted entirely — it was not clear enough at 4-bit/5 kHz to be worth it. Removed
   `src/digi.asm`, `src/gen_digi.asm`, `src/gen_digi2.asm`, `tools/digi.py`, `assets/voice/`,

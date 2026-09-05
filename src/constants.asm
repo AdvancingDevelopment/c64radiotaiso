@@ -111,7 +111,6 @@ KEY_4           = %10000000     ; tempo 110 %
 ; high byte
 KEY_5           = %00000001     ; tempo 120 %
 KEY_S           = %00000010     ; figure size 2x / 1x
-KEY_L           = %00000100     ; language emphasis
 JOY_FIRE        = %00010000
 JOY_UP          = %00100000
 JOY_DOWN        = %01000000

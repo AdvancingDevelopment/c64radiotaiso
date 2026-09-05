@@ -43,16 +43,13 @@ TITLE_COL_SEL   = 9
 TITLE_COL_JP    = 30
 
 txt_t64:     !scr "radio taiso 64", $ff
-txt_songs:   !scr "asa no march / hikari no march", $ff
 txt_sel1:    !scr "1  radio taiso no.1", $ff
 txt_sel2:    !scr "2  radio taiso no.2", $ff
 txt_start:   !scr "return, space or fire: start", $ff
 txt_credit:  !byte $1b, $20      ; (c) glyph
              !scr "advancing development 2026", $ff
 txt_kofi:    !scr "buy me a coffee: ko-fi.com/advancing", $ff
-txt_tkeys:   !scr "space:pause    q:quit", $ff
-txt_pal:     !scr "pal", $ff
-txt_ntsc:    !scr "ntsc", $ff
+txt_tkeys:   !scr "space:pause  q:quit  1-5:tempo", $ff
 sel_row:     !byte TITLE_ROW_SEL1, TITLE_ROW_SEL2
 sel_code:    !byte AREA_A_CODE, AREA_A_CODE+8   ; 第一 / 第二 in area A
 sel_txt_lo:  !byte <txt_sel1, <txt_sel2
@@ -82,18 +79,11 @@ enter_title:
         cpx #4
         bne -
         +print 13,  6, txt_t64,    COL_BRASS
-        +print  5,  7, txt_songs,  COL_DIM
+        +print  5,  8, txt_tkeys,  COL_DIM
         +print  6, 16, txt_start,  COL_GREY
-        +print  6, 21, txt_tkeys,  COL_DIM
-        +print  4, 22, txt_help2,  COL_DIM
         +print  6, 23, txt_credit, COL_GREY
         +print  2, 24, txt_kofi,   COL_BRASS
-        lda zp_ntsc
-        beq +
-        +print 36, 0, txt_ntsc, COL_DIM
-        jmp ++
-+       +print 37, 0, txt_pal, COL_DIM
-++      lda zp_routine
+        lda zp_routine
         sta zp_tsel
         jsr title_select
         ldx #0

@@ -6,7 +6,7 @@
 ; elapsed clock / tempo (row 0) and the pause overlay (rows 22-24).
 ;
 ; Hooks called by play.asm: ui_play_init, ui_movement, ui_beat,
-; ui_frame, ui_tempo, ui_toggle_lang, ui_pause_show, ui_pause_hide.
+; ui_frame, ui_tempo, ui_pause_show, ui_pause_hide.
 ; Data: gen_glyphs.asm (glyph bitmaps + string tables) and
 ; gen_backdrop.asm (tiles, sun rect, ray cell lists).
 ;
@@ -21,8 +21,7 @@
 ; Zero page $50-$5f. zp_tmp is clobbered by the IRQ (clock/input),
 ; so this module never uses it.
 ; Test builds: -DTEST_GLYPHSHEET=n shows glyphs 32n..32n+31 on rows
-; 2-5 instead of the play texts; -DTEST_LANG=1 starts with the Japanese
-; emphasis (as after F3); -DTEST_PAUSE=n pauses at frame n (pause
+; 2-5 instead of the play texts; -DTEST_PAUSE=n pauses at frame n (pause
 ; overlay); -DTEST_SCRDBG=1 (with DEBUG_HUD=1) shows the scroller state.
 ; ---------------------------------------------------------------
 
@@ -40,7 +39,8 @@ UI_ROW_STATIONS = 21
 UI_COL_SET      = 32
 UI_COL_PIPS     = 32
 UI_COL_STATION0 = 8             ; stations at cols 8,10,..,32
-UI_COL_TEMPO    = 18
+UI_ROW_TEMPO    = 22            ; bottom tempo bar row (clear of the scroller on both systems)
+UI_COL_TEMPO    = 14            ; "tempo: 12345" centred (12 chars)
 UI_COL_CLOCK    = 35
 AREA_A_CODE     = $80           ; charset codes of area A (B = $c0)
 AREA_B_HI       = >(CHARSET + $c0*8)   ; $4e: page of area B bitmaps
@@ -79,10 +79,6 @@ ui_play_init:
         sta jp_act_code
         lda #AREA_B_HI
         sta jp_inact_hi
-!ifdef TEST_LANG {
-        lda #1
-        sta ui_lang
-}
         ; row 0: routine title, tempo, elapsed clock
         +print 0, 0, txt_title0, COL_BRASS
         lda zp_routine
@@ -138,7 +134,6 @@ ui_play_init:
         ldx #16
         jsr glyph_line
 }
-        jsr ui_ntsc_help        ; NTSC: key hint on row 22 (scroller sits in 23-24)
         rts
 
 txt_title0: !scr "radio taiso no.", $ff
@@ -277,9 +272,10 @@ ui_frame:
         rts
 fps_tbl: !byte 50, 60
 
-; "tempo nnn%" on row 0 from clock_tempo (0..4 = 80..120 %)
+; bottom tempo bar on row 22: "tempo: 12345" with the current level
+; (clock_tempo 0..4 = keys 1..5 = 80..120 %) highlighted in brass
 ui_tempo:
-        lda #0
+        lda #UI_ROW_TEMPO
         sta zp_y
         lda #UI_COL_TEMPO
         sta zp_x
@@ -291,72 +287,38 @@ ui_tempo:
         lda #>txt_tempo
         sta zp_ustr+1
         ldy #0
-        jsr puts
-        ldx clock_tempo
-        lda tempo_hund,x
+        jsr puts                ; "tempo: " -> Y = 7
+        ldx #0
+.d:     txa
+        clc
+        adc #$31                ; screen codes 1..5
         sta (zp_ptr),y
-        lda zp_color
-        sta (zp_ptr2),y
+        lda #COL_DIM
+        cpx clock_tempo
+        bne +
+        lda #COL_BRASS
++       sta (zp_ptr2),y
         iny
-        lda tempo_tens,x
-        jsr put_dec2
-        lda #$25                ; %
-        sta (zp_ptr),y
-        lda zp_color
-        sta (zp_ptr2),y
-        dey
-        sta (zp_ptr2),y
-        dey
-        sta (zp_ptr2),y
+        inx
+        cpx #5
+        bne .d
         rts
-txt_tempo:  !scr "tempo ", $ff
-tempo_hund: !byte $20, $20, $31, $31, $31
-tempo_tens: !byte 80, 90, 0, 10, 20
+txt_tempo:  !scr "tempo: ", $ff
 
-; F3: swap the colour emphasis between row 1 and rows 2-3
-ui_toggle_lang:
-        lda ui_lang
-        eor #1
-        sta ui_lang
-        jsr ui_row1
-        lda #UI_ROW_JP
-        sta zp_y
-        lda #0
-        sta zp_x
-        jsr cell_ptr
-        jsr jp_colour
-        ldy #79
--       sta (zp_ptr2),y
-        dey
-        bpl -
-        rts
-
-; pause overlay in the scroller zone (rows 22-24)
+; pause overlay: PAUSED centred (row 12, col 17). The figure is hidden by
+; play.asm while paused, so the text is unobstructed; the tempo bar on
+; row 22 stays put.
 ui_pause_show:
         jsr scroller_hide
-        +print 17, 22, txt_paused, COL_BRASS
-        +print  6, 23, txt_help1, COL_DIM
-        +print  5, 24, txt_help2, COL_DIM
+        +print 17, 12, txt_paused, COL_BRASS
         rts
 ui_pause_hide:
-        lda #22
+        lda #12
         sta zp_y
-        lda #3
+        lda #1
         jsr rows_clear
-        jsr ui_ntsc_help
         jmp scroller_show
-
-; NTSC has no visible bottom border: the scroller sits in rows 23-24, so
-; row 22 carries a permanent key hint there
-ui_ntsc_help:
-        lda zp_ntsc
-        beq +
-        +print 1, 22, txt_ntsc_help, COL_DIM
-+       rts
-txt_ntsc_help: !scr "space:pause  l:lang  1-5:tempo  q:quit", $ff
 txt_paused: !scr "paused", $ff
-txt_help1:  !scr "space:resume    q:quit", $ff
-txt_help2:  !scr "l:language  1-5:tempo 80-120%", $ff
 
 ; finish screen texts (called by title.asm's enter_finish)
 ui_finish:
@@ -451,19 +413,14 @@ ui_row1:
         sta zp_ustr
         lda mv_name_hi,x
         sta zp_ustr+1
-        ldx ui_lang
-        lda lang_tbl,x
+        lda #COL_TEXT           ; exercise name: white in both languages
         sta zp_color
         jmp puts
 txt_of13: !scr "/13 ", $ff
-lang_tbl: !byte COL_TEXT, COL_GREY   ; [ui_lang] = English colour; Japanese = the other
 
-; A = colour of the Japanese name
+; A = colour of the Japanese name (white, same as the English row)
 jp_colour:
-        lda ui_lang
-        eor #1
-        tax
-        lda lang_tbl,x
+        lda #COL_TEXT
         rts
 
 ; X = routine*15 + zp_cur_mv (index into the mv_* tables)
@@ -1099,7 +1056,6 @@ clock_draw:
         jmp put_dec2
 
 ; --- state ---
-ui_lang:      !byte 0           ; 0 = English emphasised, 1 = Japanese
 pf_slot:      !byte $ff         ; slot being prefetched ($ff = none)
 pf_n:         !byte 0
 pf_i:         !byte 0

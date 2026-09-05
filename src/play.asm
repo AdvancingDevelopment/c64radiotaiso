@@ -54,10 +54,6 @@ step_play:
         lda #0
         sta keys_new
         jmp enter_pause
-+       lda keys_new+1
-        and #KEY_L              ; L: language emphasis
-        beq +
-        jsr ui_toggle_lang
 +       ; 1..5: tempo 80 / 90 / 100 / 110 / 120 %
         ldx #0
         lda keys_new
@@ -227,6 +223,7 @@ enter_pause:
         lda #1
         sta zp_tick_hold
         jsr music_pause
+        jsr figure_hide         ; clean, centred PAUSED (no sprites in front)
         jsr ui_pause_show
         rts
 
@@ -239,6 +236,7 @@ step_paused:
         sta keys_new+1
         sta zp_tick_hold
         jsr music_resume
+        jsr figure_render       ; bring the frozen figure back
         jsr ui_pause_hide
         lda #ST_PLAY
         sta zp_state
