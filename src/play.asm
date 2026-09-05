@@ -261,7 +261,7 @@ debug_hud:
         lda #24
         ldx zp_ntsc
         beq +
-        lda #22                 ; NTSC: rows 23-24 hold the scroller, 21 the dots
+        lda #20                 ; NTSC: the free row between the horizon and the tempo bar
 +       sta zp_y
         jsr cell_ptr
         ldy #0

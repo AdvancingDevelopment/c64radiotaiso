@@ -21,7 +21,7 @@ them.
   `sips --resampleWidth 768 in.png --out big.png`.
 - Test defines: `TEST_PLAY=1|2` (start routine 1/2 directly), `TEST_TICK=n` (clock jumps so the
   next tick is n; movement slot resolved), `TEST_FREEZE=1` (hold the clock once tick n is shown),
-  `DEBUG_HUD=1` (row 24, NTSC row 22: frame tick beat count mv period, late switches, max
+  `DEBUG_HUD=1` (row 24, NTSC row 20: frame tick beat count mv period, late switches, max
   rasters, bad scroller-register frames, hex), `RASTER_DEBUG=1` (border colour
   per IRQ entry), `TEST_BORDER=1` (red $D020 to see the opened vertical border).
 - `-keybuf` cannot drive tests (no KERNAL keyscan) — use the defines.
@@ -164,11 +164,12 @@ size toggle (`figure_set_scale` still exists), the V voice toggle, and the L lan
   line 8 (the figure rewrites them at line 66).
 - Screen rows: 0 routine title + elapsed clock, 1 English name (white), 2-3 Japanese name
   (white, 16 glyphs max), 4-20 figure band (+ sun/rays backdrop, count block cols 1-6,
-  set/pips cols 32-38), 20 horizon, 21 `TEMPO: 12345` bar (current level in brass), 22
-  stations (progress dots), 23-24 scroller zone; on NTSC the horizon, tempo bar and dots sit
-  one row higher (`ui_dy`). The pause overlay hides the figure and centres PAUSED on row 12.
-  The finish screen drops the tempo bar and prints "space or fire: main menu" on row 23.
-  Palette in constants.asm.
+  set/pips cols 32-39), 20 horizon, 21 empty, 22 `TEMPO: 12345` bar (current level in
+  brass), 23 stations (progress dots), 24 free (the PAL scroller sprites hang in the border
+  from line 247); on NTSC the horizon, tempo bar and dots sit one row higher (`ui_dy`: 19,
+  21, 22) with the scroller in rows 23-24. The pause overlay hides the figure and centres
+  PAUSED on row 12. The finish screen drops the tempo bar and prints "space or fire:  main
+  menu" on row 24. Palette in constants.asm.
 
 ## Play-state extras (play.asm)
 
@@ -195,8 +196,23 @@ request, freeing the $E000 block and ~6 KB of the data segment. Keep `$7FFF` = 0
   report +40 ms — a detector limitation), song 1 NTSC within ±32 ms.
 - The user runs it in real time (`make run`, 2026-09-04); the feedback rounds are in the log.
 
+## Release kit
+
+`make release VERSION=x.y` (tools/release.sh) builds `build/release/`: `RadioTaiso64.prg`,
+`RadioTaiso64.d64`, `README.txt` (from `release/README.txt`, version/date substituted),
+`screenshots/` (2x nearest-neighbour PNGs via ffmpeg: title NTSC/PAL, natural play runs of
+No.1/No.2/PAL, the finish screen after a full run), `screenshots-native/` (384 px, for CSDb),
+`cover-itch-630x500.png` and `RadioTaiso64_v<x.y>.zip`. The per-platform checklist (GitHub
+release, itch.io, CSDb, Lemon64, Internet Archive, Demozoo/Pouet, announcements) is
+`release/RELEASING.md`. Releases are tagged `v<x.y>`; v1.0 = 2026-09-04.
+
 ## Status log
 
+- 2026-09-04 (v1.0 release kit): `make release`, `release/README.txt` (release notes),
+  `release/RELEASING.md` (distribution checklist), tag `v1.0`.
+- 2026-09-04 (feedback round 4): tempo bar and progress dots one row lower (PAL rows 22/23,
+  NTSC 21/22 via `ui_dy`; the NTSC HUD row is 20); the finish hint moved to row 24 and reads
+  "space or fire:  main menu"; the set indicator is "set  n/m" (cols 32-39).
 - 2026-09-04 (feedback round 3): NTSC is the default system (`make run` = NTSC, `make run-pal`;
   `boot_test.sh` adds `-ntsc` unless `-pal` is passed; the test suite runs NTSC with PAL
   variants title_pal/border/hud_pal/pal_m5). The progress dots moved below the tempo bar

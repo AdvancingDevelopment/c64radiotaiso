@@ -3,6 +3,7 @@ ACME  ?= acme
 X64SC ?= x64sc
 PY    ?= python3
 NODE  ?= node
+VERSION ?= 1.0
 
 SRC := $(wildcard src/*.asm)
 
@@ -11,7 +12,7 @@ build/taiso.prg: $(SRC)
 	$(ACME) --symbollist build/taiso.sym src/main.asm
 	@$(PY) tools/memreport.py build/taiso.sym build/taiso.prg
 
-.PHONY: run run-pal test clean gen d64
+.PHONY: run run-pal test clean gen d64 release
 
 # VICE 3.10: host vsync on. -sidmodel 1 = 8580 (the default C64C sound).
 # Use -sidmodel 0 for the older 6581 filter if you prefer it.
@@ -32,6 +33,10 @@ test: build/taiso.prg
 
 d64: build/taiso.prg
 	c1541 -format "radio taiso,rt" d64 build/taiso.d64 -write build/taiso.prg taiso
+
+# release kit (prg, d64, README.txt, screenshots, itch cover, zip) -> build/release/
+release: build/taiso.prg
+	./tools/release.sh $(VERSION)
 
 clean:
 	rm -rf build

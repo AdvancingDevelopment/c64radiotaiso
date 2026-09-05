@@ -35,11 +35,11 @@ UI_ROW_SET      = 12            ; "set n/m"
 UI_ROW_PIPS     = 13            ; 8 beat pips
 UI_ROW_KANA     = 14            ; kana count word, rows 14-15
 UI_ROW_ROMAJI   = 17
-UI_ROW_STATIONS = 22            ; progress dots, under the tempo bar (NTSC: 21, ui_dy)
+UI_ROW_STATIONS = 23            ; progress dots, under the tempo bar (NTSC: 22, ui_dy)
 UI_COL_SET      = 32
 UI_COL_PIPS     = 32
 UI_COL_STATION0 = 8             ; stations at cols 8,10,..,32
-UI_ROW_TEMPO    = 21            ; tempo bar, under the horizon (NTSC: 20, ui_dy)
+UI_ROW_TEMPO    = 22            ; tempo bar, one empty row under the horizon (NTSC: 21)
 UI_COL_TEMPO    = 14            ; "tempo: 12345" centred (12 chars)
 UI_COL_CLOCK    = 36            ; elapsed m:ss, flush to the right edge (cols 36-39)
 AREA_A_CODE     = $80           ; charset codes of area A (B = $c0)
@@ -319,7 +319,7 @@ ui_pause_hide:
         jsr rays_redraw         ; the rays ran through those cells
         jmp scroller_show
 txt_paused: !scr "paused", $ff
-txt_menu_hint: !scr "space or fire: main menu", $ff
+txt_menu_hint: !scr "space or fire:  main menu", $ff
 
 ; finish screen texts (called by title.asm's enter_finish)
 ui_finish:
@@ -331,7 +331,7 @@ ui_finish:
         sta zp_y
         lda #1
         jsr rows_clear
-        +print 8, 23, txt_menu_hint, COL_GREY
+        +print 7, 24, txt_menu_hint, COL_GREY
         jsr ui_row1             ; "well done!"
         jsr jp_show             ; お疲れさまでした
         jsr stations_draw       ; all done -> brass
@@ -813,7 +813,7 @@ pips_draw:
         bne -
         rts
 
-; "set n/m" at row 12 col 32 (n = 8-count set within the slot)
+; "set  n/m" at row 12 cols 32-39 (n = 8-count set within the slot)
 set_draw:
         lda #UI_ROW_SET
         sta zp_y
@@ -869,13 +869,13 @@ set_draw:
         lda zp_color
         sta (zp_ptr2),y
         rts
-.clear: ldy #6
+.clear: ldy #7
         lda #$20
 -       sta (zp_ptr),y
         dey
         bpl -
         rts
-txt_set: !scr "set ", $ff
+txt_set: !scr "set  ", $ff
 
 ; ---------------------------------------------------------------
 ; stations, rays, sun, backdrop

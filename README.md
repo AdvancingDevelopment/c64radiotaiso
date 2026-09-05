@@ -20,6 +20,7 @@ make run        # VICE x64sc (NTSC, the default system)
 make run-pal    # PAL
 make d64        # build/taiso.d64
 make test       # headless screenshots into build/test/
+make release    # release kit (prg, d64, README.txt, screenshots, zip) into build/release/
 ```
 
 Requirements: `acme`, `vice` (x64sc, c1541), `python3`, `node` (regenerating pose data needs
@@ -66,4 +67,5 @@ Coded with assistance from Anthropic's Claude. Music: the original compositions 
 March" and "Hikari no March" by Advancing Development. Japanese glyphs: the public-domain
 Shinonome font (see `tools/fonts/README.md`). © 2026 Advancing Development.
 
-See `HANDOFF.md` for the architecture, module contracts and the raster-timing lessons.
+See `HANDOFF.md` for the architecture, module contracts and the raster-timing lessons, and
+`release/RELEASING.md` for the release checklist (itch.io, CSDb, Lemon64, archive.org, ...).
