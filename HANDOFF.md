@@ -25,6 +25,13 @@ them.
   rasters, bad scroller-register frames, hex), `RASTER_DEBUG=1` (border colour
   per IRQ entry), `TEST_BORDER=1` (red $D020 to see the opened vertical border).
 - `-keybuf` cannot drive tests (no KERNAL keyscan) — use the defines.
+- Video capture: VICE 3.10's "Record media file" runs an external ffmpeg over two local
+  sockets and deadlocks before the first frame (VICE's emulation thread writes audio while
+  holding the main lock; ffmpeg will not open the audio port until it has probed a video
+  frame, which the blocked render thread cannot deliver). `make run`/`run-pal` put
+  `tools/ffmpeg-relay/ffmpeg` (a buffering stand-in) first in PATH, which fixes it;
+  `tools/video.sh` turns the recording into a 1080p upload. Reproduced/verified only with a
+  socket-level simulation of VICE's sequence, not yet with a real GUI recording.
 
 ## Memory map (constants.asm)
 
@@ -210,6 +217,9 @@ release, itch.io, CSDb, Lemon64, Internet Archive, Demozoo/Pouet, announcements)
 
 ## Status log
 
+- 2026-09-05 (video): `tools/video.sh` (VICE recording -> 1080p YouTube file) and
+  `tools/ffmpeg-relay/ffmpeg` (works around the VICE 3.10 recorder deadlock; wired into the
+  `run` targets via PATH). RELEASING.md section 7 has the recording procedure.
 - 2026-09-04 (v1.0 release kit): `make release`, `release/README.txt` (release notes),
   `release/RELEASING.md` (distribution checklist), tag `v1.0`.
 - 2026-09-04 (feedback round 4): tempo bar and progress dots one row lower (PAL rows 22/23,

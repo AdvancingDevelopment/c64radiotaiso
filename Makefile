@@ -21,12 +21,17 @@ build/taiso.prg: $(SRC)
 # made `make run` silent and invisible). -ntsc/-pal are explicit for the same
 # reason. NTSC is the project's default system; `make run-pal` for PAL.
 VICEOPTS ?= -VICIIvsync -sidmodel 1 -residsamp 1
+# VICE's "Record media file" (Cmd+Shift+R) spawns an external ffmpeg fed over two
+# local sockets and deadlocks on the first frame (VICE writes audio before ffmpeg
+# will accept it). tools/ffmpeg-relay first in PATH puts a buffering stand-in
+# named ffmpeg in front of the real one; see the script's docstring.
+RELAY := PATH="$(CURDIR)/tools/ffmpeg-relay:$$PATH"
 
 run: build/taiso.prg
-	$(X64SC) $(VICEOPTS) -ntsc +saveres -autostartprgmode 1 build/taiso.prg
+	$(RELAY) $(X64SC) $(VICEOPTS) -ntsc +saveres -autostartprgmode 1 build/taiso.prg
 
 run-pal: build/taiso.prg
-	$(X64SC) $(VICEOPTS) -pal +saveres -autostartprgmode 1 build/taiso.prg
+	$(RELAY) $(X64SC) $(VICEOPTS) -pal +saveres -autostartprgmode 1 build/taiso.prg
 
 test: build/taiso.prg
 	./test/run_tests.sh

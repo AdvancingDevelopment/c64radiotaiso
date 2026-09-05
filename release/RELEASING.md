@@ -132,10 +132,12 @@ Every other listing wants a stable URL and most reviewers look for source.
 One full run of each routine, recorded inside VICE so the audio is the SID
 output, not a microphone.
 
-1. `make run` (NTSC; `make run-pal` shows the border scroller instead). On the
-   title screen open Media > Record movie... in VICE, choose the FFMPEG driver,
-   container mp4, video codec H.264 (or MPEG-4 if the emulator drops below
-   100 % speed while encoding), audio AAC, and start recording.
+1. `make run` (NTSC; `make run-pal` shows the border scroller instead). Start
+   VICE this way, not by hand: the Makefile puts `tools/ffmpeg-relay` in front
+   of ffmpeg in PATH, and without that stand-in VICE 3.10's recorder freezes
+   on the first frame (it writes audio before ffmpeg will accept it). On the
+   title screen press Cmd+Shift+R ("Record media file"), Video tab: FFMPEG
+   driver, mp4, H.264 video at about 4 Mbps, AAC audio at 384 kbps, and start.
 2. Press `1` (or `2`) and RETURN, let the routine run to the finish screen
    (about 3:10), leave the finish screen up for a few seconds, then
    Media > Stop recording. Repeat for the other routine.
@@ -148,7 +150,7 @@ output, not a microphone.
    tags c64, commodore 64, radio taiso, chiptune, SID, demoscene, homebrew.
    A 20-30 s cut of the same file makes the social clip.
 5. Put the video link on the itch page (video field) and in the README.
-6. Fallback if the Record movie dialog offers no ffmpeg driver: record the
+6. Fallback if the dialog offers no ffmpeg driver or it still stalls: record the
    VICE window with QuickTime (File > New Screen Recording, video only), run
    VICE with `-soundrecdev wav -soundrecarg audio.wav` for the sound, line the
    two up on the first note, mux with `ffmpeg -i screen.mov -i audio.wav -map

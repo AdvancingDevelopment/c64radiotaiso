@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""ffmpeg relay for VICE 3.10's "Record media file" (ffmpegexe driver).
+
+VICE runs `ffmpeg ... -i tcp://127.0.0.1:P1?listen ... -i tcp://127.0.0.1:P2?listen`
+and connects the video (P1) and audio (P2) sockets itself. ffmpeg only starts
+listening on P2 after it has probed a first video frame from P1, but VICE writes
+audio (on the emulation thread, holding its main lock) before the thread that
+renders the frame can run: VICE blocks in the audio connect/write, ffmpeg waits
+for a frame, and the emulator freezes. Reproduced with tools/sim in the session
+log; probe-size flags do not help.
+
+This script sits earlier in PATH than the real ffmpeg (Makefile `run` targets).
+It listens on both ports at once, accepts whatever VICE connects, buffers the
+bytes in memory and feeds them to the real ffmpeg through named pipes, so VICE
+never waits on ffmpeg's input order. Everything else on the command line is
+passed through unchanged. Usage is automatic: `make run`, then Cmd+Shift+R.
+"""
+import os, re, signal, socket, subprocess, sys, tempfile, threading, queue
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+def real_ffmpeg():
+    for d in os.environ.get("PATH", "").split(os.pathsep):
+        if not d or os.path.abspath(d) == HERE:
+            continue
+        p = os.path.join(d, "ffmpeg")
+        if os.path.isfile(p) and os.access(p, os.X_OK):
+            return p
+    for p in ("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"):
+        if os.path.exists(p):
+            return p
+    sys.exit("ffmpeg relay: real ffmpeg not found in PATH")
+
+def relay(port, fifo, q):
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", port))
+    srv.listen(1)
+
+    def reader():
+        conn = None
+        try:
+            conn, _ = srv.accept()
+            while True:
+                data = conn.recv(1 << 18)
+                if not data:
+                    break
+                q.put(data)
+        except OSError:
+            pass
+        finally:
+            q.put(None)
+            for s in (conn, srv):
+                try:
+                    s.close()
+                except OSError:
+                    pass
+
+    def writer():
+        try:
+            with open(fifo, "wb", buffering=0) as f:        # blocks until ffmpeg opens it
+                while True:
+                    d = q.get()
+                    if d is None:
+                        break
+                    f.write(d)
+        except OSError:
+            pass
+        finally:
+            while True:                                        # keep draining if ffmpeg quit
+                d = q.get()
+                if d is None:
+                    break
+
+    threading.Thread(target=reader, daemon=True).start()
+    threading.Thread(target=writer, daemon=True).start()
+    return srv
+
+def main():
+    args = sys.argv[1:]
+    tmp = tempfile.mkdtemp(prefix="vice-ffmpeg-")
+    servers = []
+    for i, a in enumerate(args):
+        m = re.fullmatch(r"tcp://127\.0\.0\.1:(\d+)\?listen", a)
+        if m and i > 0 and args[i - 1] == "-i":
+            fifo = os.path.join(tmp, "in%d" % i)
+            os.mkfifo(fifo)
+            servers.append(relay(int(m.group(1)), fifo, queue.Queue()))
+            args[i] = fifo
+    if not servers:                                            # not a VICE invocation
+        os.execv(real_ffmpeg(), ["ffmpeg"] + args)
+    proc = subprocess.Popen([real_ffmpeg()] + args)
+
+    def stop(signum, frame):                                   # VICE stopping the recording
+        for s in servers:
+            try:
+                s.close()
+            except OSError:
+                pass
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    code = proc.wait()
+    for name in os.listdir(tmp):
+        os.unlink(os.path.join(tmp, name))
+    os.rmdir(tmp)
+    sys.exit(code)
+
+if __name__ == "__main__":
+    main()
