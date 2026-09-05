@@ -1,6 +1,6 @@
 #!/bin/sh
 # Build the release kit into build/release/:
-#   RadioTaiso64.prg, RadioTaiso64.d64, README.txt, screenshots/ (2x, crisp),
+#   RadioTaiso64.prg, RadioTaiso64.d64, README.txt, FILE_ID.DIZ, screenshots/ (2x),
 #   screenshots-native/ (384 px wide, for CSDb), cover-itch-630x500.png and
 #   RadioTaiso64_v<version>.zip (prg + d64 + README + 2x screenshots), plus
 #   RELEASE_NOTES.md (markdown body for the GitHub release, from release/NOTES.md).
@@ -18,6 +18,7 @@ make >/dev/null
 make d64 >/dev/null 2>&1
 cp build/taiso.prg "$OUT/$NAME.prg"
 cp build/taiso.d64 "$OUT/$NAME.d64"
+cp release/FILE_ID.DIZ "$OUT/FILE_ID.DIZ"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$(date +%Y-%m-%d)/g" release/README.txt > "$OUT/README.txt"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$(date +%Y-%m-%d)/g" release/NOTES.md > "$OUT/RELEASE_NOTES.md"
 
@@ -42,6 +43,6 @@ rm -f build/release_shot.prg
 ffmpeg -loglevel error -y -i "$OUT/screenshots/02-title-pal.png" -vf "crop=630:500:69:10" \
        "$OUT/cover-itch-630x500.png"
 (cd "$OUT" && rm -f "${NAME}_v${VERSION}.zip" && \
- zip -q -r "${NAME}_v${VERSION}.zip" "$NAME.prg" "$NAME.d64" README.txt screenshots)
+ zip -q -r "${NAME}_v${VERSION}.zip" "$NAME.prg" "$NAME.d64" README.txt FILE_ID.DIZ screenshots)
 echo "release kit: $OUT"
 ls -la "$OUT"
