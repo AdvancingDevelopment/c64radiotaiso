@@ -12,6 +12,9 @@ the retro sibling of [radiotaiso.org](https://radiotaiso.org).
   each movement's cue streams by continuously), the ラジオ体操 logo in the top border on the
   title, a sunrise backdrop whose rays light up as you progress.
 
+Ready-made builds (`.d64` and `.prg`): https://advancing.itch.io/radio-taiso-64 or the
+[GitHub releases](https://github.com/AdvancingDevelopment/c64radiotaiso/releases).
+
 ## Build and run
 
 ```

@@ -44,6 +44,7 @@ CREDITS
   Japanese glyphs: Shinonome font (public domain, /efont/, 2001).
   Built with the ACME cross-assembler; tested in VICE 3.10.
 
+  Download page ....... https://advancing.itch.io/radio-taiso-64
   Web version ......... https://radiotaiso.org
   Support the project . https://ko-fi.com/advancing
 

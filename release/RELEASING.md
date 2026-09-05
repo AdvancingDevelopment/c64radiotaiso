@@ -43,8 +43,8 @@ Every other listing wants a stable URL and most reviewers look for source.
 
 ## 2. itch.io — the friendly storefront
 
-1. Account: https://itch.io/register (pick a URL slug, e.g. `advancing`).
-   Dashboard → "Create new project".
+1. The page is https://advancing.itch.io/radio-taiso-64 (account `advancing`).
+   For a new version: Dashboard → the project → "Edit game" → Uploads.
 2. Fields: Title "Radio Taiso 64"; Project URL slug `radio-taiso-64`;
    Classification "Game" (best discoverability; "Tool" is the honest
    alternative); Kind of project "Downloadable"; Release status "Released";

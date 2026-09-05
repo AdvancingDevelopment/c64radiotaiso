@@ -5,6 +5,8 @@ Japanese radio calisthenics: the retro sibling of [radiotaiso.org](https://radio
 
 ## Downloads
 
+Also on itch.io: https://advancing.itch.io/radio-taiso-64
+
 - `RadioTaiso64_v@VERSION@.zip`: everything (`.prg`, `.d64`, README, screenshots)
 - `RadioTaiso64.d64`: disk image for real hardware (SD2IEC, 1541 Ultimate, Pi1541, a real 1541) or any emulator
 - `RadioTaiso64.prg`: the program on its own, for emulators
