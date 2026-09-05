@@ -145,12 +145,18 @@ output, not a microphone.
    crisp pixels, letterboxes to 1920x1080 and encodes H.264/AAC. Trim the
    title-screen wait with the optional arguments: `tools/video.sh raw.mp4
    out.mp4 3 200` starts 3 s in and keeps 200 s.
-4. YouTube: title "Radio Taiso 64 – Radio Taiso No.1 on the Commodore 64",
+4. Thumbnail: `python3 tools/thumbnail.py raw-no1.mp4 build/release/thumbnail-no1.png 24`
+   (1280x720: the coach from the frame at 24 s, the title logo, text in the
+   program's own font; `--line "TEXT:scale:colour"` overrides the lines).
+   Chapter times: the English name row changes at every movement, so
+   `ffmpeg -i raw.mp4 -vf "crop=320:8:32:43,select='gt(scene,0.02)',showinfo"
+   -fps_mode vfr -f null -` lists them; subtract the trim start.
+5. YouTube: title "Radio Taiso 64 – Radio Taiso No.1 on the Commodore 64",
    description = the itch description plus the itch and GitHub links,
    tags c64, commodore 64, radio taiso, chiptune, SID, demoscene, homebrew.
    A 20-30 s cut of the same file makes the social clip.
-5. Put the video link on the itch page (video field) and in the README.
-6. Fallback if the dialog offers no ffmpeg driver or it still stalls: record the
+6. Put the video link on the itch page (video field) and in the README.
+7. Fallback if the dialog offers no ffmpeg driver or it still stalls: record the
    VICE window with QuickTime (File > New Screen Recording, video only), run
    VICE with `-soundrecdev wav -soundrecarg audio.wav` for the sound, line the
    two up on the first note, mux with `ffmpeg -i screen.mov -i audio.wav -map
