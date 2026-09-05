@@ -325,11 +325,11 @@ txt_menu_hint: !scr "space or fire:  main menu", $ff
 ui_finish:
         lda #MV_SLOTS-1
         sta zp_cur_mv
-        lda #UI_ROW_TEMPO       ; no tempo bar on the finish screen
-        sec
+        lda #UI_ROW_TEMPO       ; finish screen: no tempo bar, and the dots move up
+        sec                     ; into its row (stations_draw) — clear both rows
         sbc ui_dy
         sta zp_y
-        lda #1
+        lda #2
         jsr rows_clear
         +print 8, 24, txt_menu_hint, COL_GREY   ; cols 8-32 (one right of centred)
         jsr ui_row1             ; "well done!"
@@ -885,7 +885,12 @@ stations_draw:
         lda #UI_ROW_STATIONS
         sec
         sbc ui_dy
-        sta zp_y
+        ldx zp_state
+        cpx #ST_FINISH          ; finish screen: one row up, into the cleared tempo row
+        bne +
+        sec
+        sbc #1
++       sta zp_y
         lda #UI_COL_STATION0
         sta zp_x
         jsr cell_ptr

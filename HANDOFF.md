@@ -168,8 +168,8 @@ size toggle (`figure_set_scale` still exists), the V voice toggle, and the L lan
   brass), 23 stations (progress dots), 24 free (the PAL scroller sprites hang in the border
   from line 247); on NTSC the horizon, tempo bar and dots sit one row higher (`ui_dy`: 19,
   21, 22) with the scroller in rows 23-24. The pause overlay hides the figure and centres
-  PAUSED on row 12. The finish screen drops the tempo bar and prints "space or fire:  main
-  menu" on row 24. Palette in constants.asm.
+  PAUSED on row 12. The finish screen drops the tempo bar, moves the dots up into its row and
+  prints "space or fire:  main menu" on row 24 (cols 8-32). Palette in constants.asm.
 
 ## Play-state extras (play.asm)
 
@@ -214,7 +214,8 @@ release, itch.io, CSDb, Lemon64, Internet Archive, Demozoo/Pouet, announcements)
   NTSC 21/22 via `ui_dy`; the NTSC HUD row is 20); the finish hint moved to row 24 and reads
   "space or fire:  main menu"; the set indicator is "set  n/m" (cols 32-39). Later the hint
   moved one column right (col 8) at the user's request; row 24 is the last text row, so a
-  further move down would need sprites in the border (not done).
+  further move down would need sprites in the border (not done); instead the finish screen's
+  dots moved up one row into the cleared tempo row (`stations_draw` checks ST_FINISH).
 - 2026-09-04 (feedback round 3): NTSC is the default system (`make run` = NTSC, `make run-pal`;
   `boot_test.sh` adds `-ntsc` unless `-pal` is passed; the test suite runs NTSC with PAL
   variants title_pal/border/hud_pal/pal_m5). The progress dots moved below the tempo bar
