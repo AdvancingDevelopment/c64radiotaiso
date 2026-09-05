@@ -101,8 +101,9 @@ Every other listing wants a stable URL and most reviewers look for source.
 
 ## 5. Internet Archive — permanent home (archive.org)
 
-1. Account at https://archive.org/account/signup, then "Upload".
-2. One item: the zip, the .d64, the .prg, README.txt and the screenshots.
+1. The item is https://archive.org/details/radio-taiso-64-v-1.0 (created 2026-09-05). For a new
+   version use "Upload files" on that item so the identifier stays the permanent home.
+2. It holds the zip, the .d64, the .prg, README.txt and the screenshots.
    Metadata: title "Radio Taiso 64 (Commodore 64, 2026)"; media type
    "Software"; description (README); subject tags "Commodore 64; C64; Radio
    Taiso; homebrew; radio calisthenics; 2026"; language "English; Japanese";
