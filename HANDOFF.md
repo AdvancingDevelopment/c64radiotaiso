@@ -212,7 +212,8 @@ No.1/No.2/PAL, the finish screen after a full run), `screenshots-native/` (384 p
 `cover-itch-630x500.png`, `RELEASE_NOTES.md` (GitHub release body, from `release/NOTES.md`)
 and `RadioTaiso64_v<x.y>.zip`. GitHub: https://github.com/AdvancingDevelopment/c64radiotaiso
 (public; releases carry the zip, d64 and prg); itch.io page https://advancing.itch.io/radio-taiso-64
-(v1.0 published 2026-09-05), Internet Archive item https://archive.org/details/radio-taiso-64-v-1.0.
+(v1.0 published 2026-09-05), Internet Archive item https://archive.org/details/radio-taiso-64-v-1.0, Pouet prod
+https://www.pouet.net/prod.php?which=106986.
 The per-platform checklist (GitHub
 release, itch.io, CSDb, Lemon64, Internet Archive, Demozoo/Pouet, announcements) is
 `release/RELEASING.md`. Releases are tagged `v<x.y>`; v1.0 = 2026-09-04.

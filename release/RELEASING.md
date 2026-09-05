@@ -120,8 +120,8 @@ Every other listing wants a stable URL and most reviewers look for source.
 
 - **Demozoo** (demozoo.org) — demoscene database, cross-links CSDb; add the
   production under your scener/group with the same files and screenshots.
-- **Pouet** (pouet.net) — add as type "game" (platform C64) with a download
-  link and a screenshot; comments and thumbs come from the scene.
+- **Pouet** (pouet.net) — listed as type "game", platform C64:
+  https://www.pouet.net/prod.php?which=106986 (2026-09-05). Comments and thumbs come from the scene.
 - **GameBase64** (gb64.com) — the big C64 games database; submissions go
   through their forum/contact, they want the d64 and screenshots.
 - **Indie Retro News** and **Vintage is the New Old** — tip forms/emails for
