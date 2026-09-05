@@ -152,7 +152,8 @@ output, not a microphone.
    Chapter times: the English name row changes at every movement, so
    `ffmpeg -i raw.mp4 -vf "crop=320:8:32:43,select='gt(scene,0.02)',showinfo"
    -fps_mode vfr -f null -` lists them; subtract the trim start.
-5. YouTube: title "Radio Taiso 64 – Radio Taiso No.1 on the Commodore 64",
+5. YouTube (No.1 run: https://www.youtube.com/watch?v=zRThp9hkDdQ): title "Radio Taiso 64 – Radio
+   Taiso No.1 on the Commodore 64",
    description = the itch description plus the itch and GitHub links,
    tags c64, commodore 64, radio taiso, chiptune, SID, demoscene, homebrew.
    A 20-30 s cut of the same file makes the social clip.
