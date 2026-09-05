@@ -2,7 +2,8 @@
 # Build the release kit into build/release/:
 #   RadioTaiso64.prg, RadioTaiso64.d64, README.txt, screenshots/ (2x, crisp),
 #   screenshots-native/ (384 px wide, for CSDb), cover-itch-630x500.png and
-#   RadioTaiso64_v<version>.zip (prg + d64 + README + 2x screenshots).
+#   RadioTaiso64_v<version>.zip (prg + d64 + README + 2x screenshots), plus
+#   RELEASE_NOTES.md (markdown body for the GitHub release, from release/NOTES.md).
 # Screenshots come from headless VICE runs of the normal build (title, natural
 # play runs, the finish screen after a full routine). Needs ffmpeg and zip.
 #   usage: tools/release.sh [version]      (or: make release VERSION=1.0)
@@ -18,6 +19,7 @@ make d64 >/dev/null 2>&1
 cp build/taiso.prg "$OUT/$NAME.prg"
 cp build/taiso.d64 "$OUT/$NAME.d64"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$(date +%Y-%m-%d)/g" release/README.txt > "$OUT/README.txt"
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$(date +%Y-%m-%d)/g" release/NOTES.md > "$OUT/RELEASE_NOTES.md"
 
 # shot <name> <acme defines> <cycles> [x64sc args]: native PNG + 2x nearest-neighbour PNG
 shot() {

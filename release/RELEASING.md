@@ -34,12 +34,13 @@ Every other listing wants a stable URL and most reviewers look for source.
    choice for C64 homebrew; the music is your own, the Shinonome font is
    public domain (`tools/fonts/README.md`). If you would rather keep the
    source private, skip this section and host the zip on itch.io only.
-2. `gh repo create advancing/c64radiotaiso --public --source=. --push`
-   (or create it in the web UI and `git remote add origin ...; git push -u
-   origin main --tags`).
-3. `gh release create v1.0 build/release/RadioTaiso64_v1.0.zip
-   build/release/RadioTaiso64.d64 --title "Radio Taiso 64 v1.0" --notes-file
-   build/release/README.txt`.
+2. The repo is https://github.com/AdvancingDevelopment/c64radiotaiso (created
+   with `gh repo create c64radiotaiso --public --source=. --push`). Push the
+   branch and the tag: `git push origin main v<x.y>`.
+3. `gh release create v<x.y> build/release/RadioTaiso64_v<x.y>.zip
+   build/release/RadioTaiso64.d64 build/release/RadioTaiso64.prg
+   --title "Radio Taiso 64 v<x.y>" --notes-file build/release/RELEASE_NOTES.md`
+   (`RELEASE_NOTES.md` is generated from `release/NOTES.md`).
 4. Put the release URL into the itch/CSDb/archive descriptions.
 
 ## 2. itch.io — the friendly storefront
