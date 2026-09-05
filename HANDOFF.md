@@ -212,7 +212,9 @@ release, itch.io, CSDb, Lemon64, Internet Archive, Demozoo/Pouet, announcements)
   `release/RELEASING.md` (distribution checklist), tag `v1.0`.
 - 2026-09-04 (feedback round 4): tempo bar and progress dots one row lower (PAL rows 22/23,
   NTSC 21/22 via `ui_dy`; the NTSC HUD row is 20); the finish hint moved to row 24 and reads
-  "space or fire:  main menu"; the set indicator is "set  n/m" (cols 32-39).
+  "space or fire:  main menu"; the set indicator is "set  n/m" (cols 32-39). Later the hint
+  moved one column right (col 8) at the user's request; row 24 is the last text row, so a
+  further move down would need sprites in the border (not done).
 - 2026-09-04 (feedback round 3): NTSC is the default system (`make run` = NTSC, `make run-pal`;
   `boot_test.sh` adds `-ntsc` unless `-pal` is passed; the test suite runs NTSC with PAL
   variants title_pal/border/hud_pal/pal_m5). The progress dots moved below the tempo bar

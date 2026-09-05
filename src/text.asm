@@ -331,7 +331,7 @@ ui_finish:
         sta zp_y
         lda #1
         jsr rows_clear
-        +print 7, 24, txt_menu_hint, COL_GREY
+        +print 8, 24, txt_menu_hint, COL_GREY   ; cols 8-32 (one right of centred)
         jsr ui_row1             ; "well done!"
         jsr jp_show             ; お疲れさまでした
         jsr stations_draw       ; all done -> brass
