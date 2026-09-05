@@ -49,6 +49,13 @@ $40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
    version overran into line 251 in 2-8 % of the frames: the border closed and the scroller
    sprites vanished for a frame ("dropouts"). `DEBUG_HUD` shows the late-switch counter and the
    max raster at entry/after writes/after switch (must stay < 251).
+   NTSC needs the same switch (the glyph rows 237-252 cross the 25-row bottom border at 251)
+   and there it is the bottom entry's job: that entry fires at 244 (`LINE_BORDER_NTSC`) and
+   waits for line 248 before the `$D011` write. Dispatched at 249 it landed after 251 in ~5 %
+   of the frames with the voice on (158 of 3350 in a 56 s HUD run: NMI + the 8 sprites' DMA
+   stalls eat the 2.6-line budget) — the bottom two glyph rows blinked, seen as "the yellow
+   text flickers with the voice on". The bottom entry's HUD counter (`irq_late_border`, NTSC)
+   and `irq_max_d` (raster after the switch, must stay <= 250) verify it.
 4. The bottom entry (music/input/clock) can overrun the frame end on NTSC (only 20 lines left):
    entry 0's late check handles a raster that has already wrapped past line 8.
 5. IRQ-side code must not use `zp_tmp` (main-loop scratch); use `zp_clock_tmp`/`zp_irq_tmp`.
@@ -56,6 +63,14 @@ $40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
    takes effect on the next fetched row — so re-point a running sprite only into rows that are
    blank in both slots (that is why sprites 4/5 can switch to the scroller 10 lines before the
    shin box ends).
+7. Chain lines that the figure publishes per frame (`irq_lines+2..4`) must also be right when
+   the figure is off: the table default for the scroller entry is the PAL line (228), which on
+   NTSC delayed that entry's expansion switch to the sprite Y itself (line 237) on the title
+   and in the first play frames. `detect_pal` and `figure_hide` now set the per-system line.
+8. ACME anonymous labels: a `+`/`-` inside an `!ifdef` block is a target for branches outside
+   it. The `DEBUG_HUD` build's `beq +` in `irq_scroll` jumped into the HUD block and skipped
+   the whole PAL border switch — the HUD measured a different program. Use named `.labels`
+   around conditional blocks.
 
 ## Frame skeleton
 
@@ -163,7 +178,15 @@ tilt frames. Keep `$7FFF` = 0.
 
 ## Status log
 
-- 2026-09-04 (diagnosis): `DEBUG_HUD` now also counts frames in which any scroller register
+- 2026-09-04 (NTSC round 7, fixed): the voice-on flicker of the NTSC scroller was the 24-row
+  border switch, still dispatched at line 249 on NTSC, landing after line 251 in ~5 % of the
+  frames (HUD: 158 late switches in 56 s with the voice, 1 without). The bottom entry now
+  fires at 244 on NTSC and waits for 248 (lesson 3); the scroller entry's default line is set
+  per system (lesson 7); the HUD build's label bug fixed (lesson 8). Verified: NTSC 60 s voice
+  on: 0 late switches, switch max line 250, scroller entry 220/224/230, 0 bad register frames;
+  PAL 50 s voice on: 0 late, switch max 250, entry 231/234. The "emulator side" diagnosis
+  below was wrong.
+- 2026-09-04 (diagnosis, superseded): `DEBUG_HUD` now also counts frames in which any scroller register
   ($D001/$D009 Y, $D000/$D008 X, pointers 0/4, $D015, $D017, $D010) differs from the committed
   value at line 249 (`irq_bad_regs`). NTSC, voice on, 65 s: 1 bad frame in ~3900 (the movement
   cut). So the VIC state is right; the flicker the user still sees in VICE with the voice on is

@@ -113,8 +113,13 @@ detect_pal:
         lda waist1_tbl,x
         sta fig_waist_y1
         stx ui_dy               ; NTSC: backdrop bottom + stations one row higher
+        lda border_line_tbl,x
+        sta irq_lines+5         ; bottom entry (24-row switch) line
+        lda scroll_line_tbl,x
+        sta irq_lines+4         ; scroller entry line until the figure publishes one
         rts
 scroll_line_tbl: !byte LINE_SCROLL_PAL, LINE_SCROLL_NTSC
+border_line_tbl: !byte LINE_BORDER, LINE_BORDER_NTSC
 scr_y_tbl:       !byte SCR_Y_PAL, SCR_Y_NTSC
 ; NTSC has no visible bottom border: the figure stands 8 px higher so the
 ; shin sprites finish before the (in-picture) scroller line

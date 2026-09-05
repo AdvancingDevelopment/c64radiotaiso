@@ -9,8 +9,9 @@
 ;   3 pre       irq_scroll_pre  sprites 0-3,6,7 become glyph sprites (they
 ;                            finished their figure roles; line from the figure)
 ;   4 scroller  irq_scroll   sprites 4/5 (after the shins) + shared regs
-;   5 line 249  irq_bottom   24-row mode (the vertical border never closes),
-;                            then clock, music, input, frame counter
+;   5 line 249  irq_bottom   24-row mode (the vertical border never closes;
+;      (NTSC 244)            NTSC waits for line 248 first), then clock,
+;                            music, input, frame counter
 ; Rules learned the hard way: never write a $d011 value that carries the
 ; current raster bit 8 (it becomes the compare MSB), and ack the raster
 ; flag before running a late entry by hand — the VIC compares every
@@ -76,8 +77,8 @@ irq_handler:
         lda VIC_RASTER
         cmp #LINE_TOP
         bcc .done           ; new frame, before line 8: on time
-        cmp #LINE_BORDER
-        bcs .done           ; this frame, lines 249..255
+        cmp #LINE_BORDER_NTSC
+        bcs .done           ; this frame, lines 244..255
         bcc .late           ; wrapped past line 8: run it now
 +       cmp VIC_RASTER
         bcc .late           ; next line <= current raster: run it now
@@ -128,9 +129,10 @@ irq_scroll:
 +
 }
         lda zp_ntsc
-        beq +
-        ; NTSC: no border to open. Clearing Y-expansion while the shin
-        ; sprites (4/5) still run would crunch them, so wait for their end
+        beq .pal
+        ; NTSC: the 24-row switch is the bottom entry's job (line 244, waits
+        ; for 248). Clearing Y-expansion while the shin sprites (4/5) still
+        ; run would crunch them, so wait for their end first
 -       lda VIC_RASTER
         cmp #SHIN_END_NTSC+1
         bcc -
@@ -144,7 +146,7 @@ irq_scroll:
 +
 }
         rts
-+
+.pal:
         ; The 24-row switch that keeps the vertical border open must land in
         ; lines 248-251 (after the 24-row bottom compare at 247, before the
         ; 25-row one at 251). Doing it here right after the scroller writes
@@ -172,10 +174,36 @@ irq_scroll:
         rts
 
 irq_bottom:
-        lda VIC_CTRL1
-        and #$77            ; 24-row mode again (harmless repeat, see irq_scroll)
+        lda zp_ntsc
+        beq +
+        ; NTSC: this entry does the 24-row switch. It fires at 244 so that
+        ; even a dispatch stretched by the digi NMI and the 8 sprites' DMA
+        ; arrives before 248, then waits for the window (lines 248-251)
+-       bit VIC_CTRL1
+        bmi +               ; past line 255 already (never, but no wait then)
+        lda VIC_RASTER
+        cmp #LINE_BORDER-1
+        bcc -
++       lda VIC_CTRL1
+        and #$77            ; 24-row mode (PAL: harmless repeat, see irq_scroll)
         sta VIC_CTRL1
 !ifdef DEBUG_HUD {
+        ; NTSC: this is the only 24-row switch — count the ones that landed
+        ; after line 251 (border closed for this frame), track the latest
+        lda zp_ntsc
+        beq .nolate
+        lda VIC_CTRL1
+        bmi .late1
+        lda VIC_RASTER
+        cmp irq_max_d
+        bcc +
+        sta irq_max_d
++       cmp #LINE_BORDER+3
+        bcc .nolate
+.late1: inc irq_late_border
+        lda #$ff
+        sta irq_max_d
+.nolate:
         ; consistency check while the glyph sprites are on screen: every
         ; register the scroller relies on must hold the committed value
         lda scr_hidden
@@ -226,6 +254,7 @@ irq_bad_regs: !byte 0
 irq_max_a: !byte 0
 irq_max_b: !byte 0
 irq_max_c: !byte 0
+irq_max_d: !byte 0
 }
 irq_lines:   !byte LINE_TOP, LINE_FIGURE, LINE_SPLIT_DEF, LINE_PRE_DEF, LINE_SCROLL_PAL, LINE_BORDER
 irq_vec_lo:  !byte <irq_top, <irq_figure, <irq_split, <irq_scroll_pre, <irq_scroll, <irq_bottom

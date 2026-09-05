@@ -343,6 +343,8 @@ debug_hud:
         jsr put_hex
         lda irq_max_c
         jsr put_hex
+        lda irq_max_d           ; NTSC: max raster after the bottom entry's 24-row switch
+        jsr put_hex
         iny
         lda irq_bad_regs        ; frames with a wrong scroller register at line 249
         jsr put_hex

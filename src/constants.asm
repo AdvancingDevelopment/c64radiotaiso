@@ -77,6 +77,9 @@ SCR_Y_NTSC      = 237           ; NTSC: 21 px, glyph rows 237-252 (figure raised
                                 ; shins end by 233); fixed for the same reason
 SHIN_END_NTSC   = 228           ; NTSC: the shin boxes end by 227; expansion may change after
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
+LINE_BORDER_NTSC = 244          ; NTSC: the bottom entry fires early and waits for line 248 —
+                                ; dispatched at 249 the switch lands after 251 whenever the
+                                ; digi NMI stretches it, and the border closes over the scroller
 LINE_PRE_DEF    = 205           ; scroller pre-commit (sprites 0-3,6,7) default line
 LINE_PRE_MIN    = 196           ; never earlier than this
 IRQ_ENTRIES     = 6

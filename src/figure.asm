@@ -162,6 +162,8 @@ figure_hide:
         sta irq_lines+3
         lda scroll_min_line
         sta irq_lines+4
+        lda scroll_min_line
+        sta irq_lines+4
         rts
 
 ; ---------------------------------------------------------------
