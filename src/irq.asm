@@ -150,8 +150,8 @@ irq_scroll:
         ; The 24-row switch that keeps the vertical border open must land in
         ; lines 248-251 (after the 24-row bottom compare at 247, before the
         ; 25-row one at 251). Doing it here right after the scroller writes
-        ; gives ~3 lines of slack; the bottom entry at 249 would be too late
-        ; whenever this entry is stretched by the digi NMI.
+        ; gives ~3 lines of slack; a bottom entry at 249 could be too late
+        ; when a badline + sprite DMA stretches this entry.
 -       lda VIC_RASTER
         cmp #LINE_BORDER-1
         bcc -
@@ -177,7 +177,7 @@ irq_bottom:
         lda zp_ntsc
         beq +
         ; NTSC: this entry does the 24-row switch. It fires at 244 so that
-        ; even a dispatch stretched by the digi NMI and the 8 sprites' DMA
+        ; even a dispatch stretched by a badline and the 8 sprites' DMA
         ; arrives before 248, then waits for the window (lines 248-251)
 -       bit VIC_CTRL1
         bmi +               ; past line 255 already (never, but no wait then)
@@ -246,7 +246,11 @@ irq_bottom:
         jsr input_scan
         rts
 
-; NMI: digi player (digi.asm); before it exists, an acknowledging stub
+; NMI: nothing drives the NMI line now (the digi voice was removed).
+; RESTORE still pulls it; it is self-clearing, so just return.
+nmi_handler:
+        rti
+
 irq_idx:     !byte 0
 !ifdef DEBUG_HUD {
 irq_late_border: !byte 0

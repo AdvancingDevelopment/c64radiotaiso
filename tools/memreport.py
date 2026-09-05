@@ -8,7 +8,6 @@ for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
         sym[m.group(1)] = int(m.group(2), 16)
 size = os.path.getsize(sys.argv[2]) if len(sys.argv) > 2 else 0
 segs = [("code", "code_start", "code_end", "CODE_LIMIT"),
-        ("stage", "stage_start", "stage_end", "STAGE_LIMIT"),
         ("charset", "charset_start", "charset_end", "CHARSET_LIMIT"),
         ("frames", "frames_start", "frames_end", "FRAMES_LIMIT"),
         ("bankdata", "frames_end", "bankdata_end", "FRAMES_LIMIT"),

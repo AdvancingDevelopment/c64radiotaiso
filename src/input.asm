@@ -80,8 +80,6 @@ input_scan:
         +key_hi $20, KEY_S
         +key_col %11111011      ; PA2: 5(r0)
         +key_hi $01, KEY_5
-        +key_col %11110111      ; PA3: V(r7)
-        +key_hi $80, KEY_V
         +key_col %11011111      ; PA5: L(r2)
         +key_hi $04, KEY_L
         lda #$ff

@@ -50,7 +50,7 @@ txt_start:   !scr "return, space or fire: start", $ff
 txt_credit:  !byte $1b, $20      ; (c) glyph
              !scr "advancing development 2026", $ff
 txt_kofi:    !scr "buy me a coffee: ko-fi.com/advancing", $ff
-txt_tkeys:   !scr "space:pause  q:quit  v:voice", $ff
+txt_tkeys:   !scr "space:pause    q:quit", $ff
 txt_pal:     !scr "pal", $ff
 txt_ntsc:    !scr "ntsc", $ff
 sel_row:     !byte TITLE_ROW_SEL1, TITLE_ROW_SEL2
@@ -147,7 +147,7 @@ step_title:
 !ifdef TEST_FINISH {
         lda #TEST_FINISH-1
         sta zp_routine
-        jsr logo_show
+        jsr logo_hide
         jsr enter_play
         jmp enter_finish
 }
@@ -191,7 +191,7 @@ step_title:
         jmp logo_frame          ; wobble the logo (Y table for the IRQ)
 .go:    lda zp_tsel
         sta zp_routine
-        jsr logo_show           ; static routine logo during play
+        jsr logo_hide           ; no logo during play (top stays clear)
         jmp enter_play
 
 ; ---------------------------------------------------------------
@@ -201,11 +201,7 @@ enter_finish:
         jsr ui_finish           ; texts, stations, rays, sun, scroller cue
         lda #ANIM_BOW
         jsr choreo_set_anim
-        lda digi_enabled
-        beq +
-        lda #DIGI_OTSUKARE
-        jsr digi_play
-+       rts
+        rts
 
 step_finish:
         lda zp_tick_flag
@@ -218,7 +214,6 @@ step_finish:
         jsr choreo_tick         ; the bow keeps cycling
         jsr figure_render
 +       jsr scroller_frame
-        jsr digi_frame
         lda keys_new
         ora keys_new+1
         beq +
@@ -226,7 +221,6 @@ step_finish:
         sta keys_new
         sta keys_new+1
         jsr music_stop
-        jsr digi_stop
         jsr figure_hide
         jsr scroller_hide
         jmp enter_title

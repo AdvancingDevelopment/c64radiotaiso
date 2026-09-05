@@ -58,28 +58,6 @@ hw_init:
         bpl -
         rts
 
-; copy the staged block (assembled at STAGE_START with !pseudopc
-; HIMEM_START) up to $e000, so the load image never touches $d000+
-stage_copy:
-        lda #<stage_start
-        sta zp_src
-        lda #>stage_start
-        sta zp_src+1
-        lda #<HIMEM_START
-        sta zp_dst
-        lda #>HIMEM_START
-        sta zp_dst+1
-        ldx #>(STAGE_LIMIT - STAGE_START)   ; pages
-        ldy #0
--       lda (zp_src),y
-        sta (zp_dst),y
-        iny
-        bne -
-        inc zp_src+1
-        inc zp_dst+1
-        dex
-        bne -
-        rts
 
 ; Sets zp_ntsc: 0 = PAL (312 lines), 1 = NTSC (263 lines).
 ; While the raster is in lines >= 256 ($d011 bit 7 set), track the

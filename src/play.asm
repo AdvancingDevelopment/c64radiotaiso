@@ -1,7 +1,7 @@
 !zone play
 ; ---------------------------------------------------------------
 ; play.asm — the PLAY / PAUSED states: clock flags -> movement slot,
-; counts, hooks into figure/ui/scroller/digi. Everything here is
+; counts, hooks into figure/ui/scroller. Everything here is
 ; driven by zp_tick (owned by clock.asm); this file never touches
 ; the VIC directly except through the ui/figure modules.
 ; ---------------------------------------------------------------
@@ -19,15 +19,9 @@ enter_play:
         sta play_subsec
         sta play_sec
         sta play_min
-!ifdef TEST_NOVOICE {
-        lda #0                  ; audio checks: music without the spoken counts
-        sta digi_enabled
-}
         jsr ui_play_init        ; static layout + backdrop (ui/text modules)
         jsr figure_init
         jsr scroller_init
-        lda zp_routine
-        jsr play_announce       ; spoken title (digi module)
         ; start the clock on this song's period table and the music
         ldx zp_routine
         jsr music_play          ; sets clock table + calls clock_start
@@ -47,12 +41,6 @@ enter_play:
         jsr ui_movement         ; draw slot 0 (warm-up) texts
         rts
 
-play_announce:
-        lda zp_routine
-        clc
-        adc #DIGI_TITLE1
-        jmp digi_play
-
 ; ---------------------------------------------------------------
 step_play:
         ; --- keys ---
@@ -70,10 +58,6 @@ step_play:
         and #KEY_L              ; L: language emphasis
         beq +
         jsr ui_toggle_lang
-+       lda keys_new+1
-        and #KEY_V              ; V: voice on / off
-        beq +
-        jsr digi_toggle
 +       ; 1..5: tempo 80 / 90 / 100 / 110 / 120 %
         ldx #0
         lda keys_new
@@ -130,9 +114,6 @@ step_play:
         lda #0
         sta zp_beat_flag
         jsr ui_beat             ; digit, words, pips, sun pulse
-        lda digi_enabled
-        beq .no_beat
-        jsr play_speak_count
 .no_beat:
         lda zp_mv_flag
         beq .no_mv
@@ -149,7 +130,6 @@ step_play:
         jsr play_clock_frame
         jsr scroller_frame
         jsr ui_frame            ; prefetch step, pulses, clock display
-        jsr digi_frame
 !ifdef DEBUG_HUD {
         jsr debug_hud
 }
@@ -187,28 +167,6 @@ play_anim_for_slot:
 +       lda mv_anim_r2,x
         jmp choreo_set_anim
 
-; spoken count: breathing slot (13) says suutte/haite on counts 1/5
-play_speak_count:
-        lda zp_cur_mv
-        beq .none               ; warm-up: no counting
-        cmp #13
-        beq .breath
-        lda zp_count8
-        clc
-        adc #DIGI_ICHI-1
-        jmp digi_play
-.breath:
-        lda zp_count8
-        cmp #1
-        bne +
-        lda #DIGI_SUTTE
-        jmp digi_play
-+       cmp #5
-        bne .none
-        lda #DIGI_HAITE
-        jmp digi_play
-.none:  rts
-
 ; end of the routine: bow, then the finish screen (title.asm)
 play_finish:
         lda #ANIM_BOW
@@ -217,7 +175,7 @@ play_finish:
         jmp enter_finish
 
 ; called every frame from the main loop in ST_FINISH before step_finish:
-; keeps the figure animating (bow) and the ui/digi housekeeping alive
+; keeps the figure animating (bow) and the ui housekeeping alive
 finish_tick:
         lda zp_tick_flag
         beq +
@@ -229,8 +187,7 @@ finish_tick:
         sta zp_local_tick
         jsr choreo_tick
         jsr figure_render
-+       jsr ui_frame
-        jmp digi_frame
++       jmp ui_frame
 
 ; elapsed time: play_sec/play_min (binary), advanced once per frame
 play_clock_frame:
@@ -259,7 +216,6 @@ play_quit:
         sta keys_new
         sta keys_new+1
         jsr music_stop
-        jsr digi_stop
         jsr figure_hide
         jsr scroller_hide
         jmp enter_title
@@ -271,7 +227,6 @@ enter_pause:
         lda #1
         sta zp_tick_hold
         jsr music_pause
-        jsr digi_stop
         jsr ui_pause_show
         rts
 

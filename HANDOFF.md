@@ -24,17 +24,16 @@ All-RAM configuration `$01 = $35`; own vectors at $FFFA-$FFFF; no KERNAL/BASIC c
 
 | region | use |
 |---|---|
-| $0810-$35FF | code segment: every `src/*.asm` module + small tables (guard CODE_LIMIT) |
-| $3600-$47FF | staging: `gen_digi.asm` assembled with `!pseudopc $E000`, copied to $E000 at boot |
+| $0810-$3FFF | code segment: every `src/*.asm` module + song 1 (guard CODE_LIMIT=$4000); ends ~$325E |
 | $4000-$43FF | screen (bank 1), sprite pointers $43F8 |
 | $4400-$47FF | DYN_SLOTS: sprite slots 16..31 (scroller / logo double buffers, RAM) |
 | $4800-$4FFF | charset (`src/charset.asm`) |
 | $5000-$7FFF | FRAMES: sprite slots 64..255 (`src/gen_sprites.asm`); $7FFF must stay 0 |
-| $8000-$CFFF | data segment: gen_song1/2, gen_poses, gen_glyphs, gen_backdrop, gen_digi2 |
-| $E000-$FFF9 | runtime home of the staged block (digi part 1) |
+| $8000-$CFFF | data segment: gen_song2, gen_poses, gen_glyphs, gen_backdrop (12.9 KB / 20 KB used) |
+| $FFFA-$FFFF | IRQ/NMI/RESET vectors (written by hw_init; NMI is a bare `rti` stub) |
 
 Zero page: $02-$1F shared (see constants.asm), $20-$2F figure/choreo, $30-$3F music,
-$40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
+$40-$47 free (was digi), $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
 
 ## Raster-timing lessons (hard-won, keep them)
 
@@ -45,17 +44,17 @@ $40-$47 digi, $48-$4F scroller, $50-$5F ui, $60-$6F irq/clock, $70-$7F title.
 3. The 24-row switch that keeps the vertical border open has a 3-line window (lines 248-251).
    It is done in the scroller entry after its sprite writes, with a wait for line 248 — the
    entry itself is straight-line stores (~260 cycles, sprites 4/5 last because the shins may
-   still be running) starting at line 235-239. With the digi NMI (25-30 % CPU) any loop-based
-   version overran into line 251 in 2-8 % of the frames: the border closed and the scroller
-   sprites vanished for a frame ("dropouts"). `DEBUG_HUD` shows the late-switch counter and the
-   max raster at entry/after writes/after switch (must stay < 251).
+   still be running) starting at line 235-239. A badline plus the 8 sprites' DMA can still
+   push a loop-based version past 251 in a few percent of frames (the border closes and the
+   scroller vanishes for a frame — "dropouts"); `DEBUG_HUD` shows the late-switch counter and
+   the max raster at entry/after writes/after switch (must stay < 251).
    NTSC needs the same switch (the glyph rows 237-252 cross the 25-row bottom border at 251)
    and there it is the bottom entry's job: that entry fires at 244 (`LINE_BORDER_NTSC`) and
-   waits for line 248 before the `$D011` write. Dispatched at 249 it landed after 251 in ~5 %
-   of the frames with the voice on (158 of 3350 in a 56 s HUD run: NMI + the 8 sprites' DMA
-   stalls eat the 2.6-line budget) — the bottom two glyph rows blinked, seen as "the yellow
-   text flickers with the voice on". The bottom entry's HUD counter (`irq_late_border`, NTSC)
-   and `irq_max_d` (raster after the switch, must stay <= 250) verify it.
+   waits for line 248 before the `$D011` write. Dispatched at 249 it landed after 251 in a
+   few percent of frames — the bottom two glyph rows blinked. (Historically this was far
+   worse — ~5 %, 158/3350 in a 56 s run — while the 5 kHz digi voice NMI stole 25-30 % CPU;
+   the voice has since been removed, but the early-fire + wait is kept for the DMA margin.)
+   The HUD counter (`irq_late_border`, NTSC) and `irq_max_d` (must stay <= 250) verify it.
 4. The bottom entry (music/input/clock) can overrun the frame end on NTSC (only 20 lines left):
    entry 0's late check handles a raster that has already wrapped past line 8.
 5. IRQ-side code must not use `zp_tmp` (main-loop scratch); use `zp_clock_tmp`/`zp_irq_tmp`.
@@ -93,14 +92,14 @@ index = segment*10 + ntsc*5 + tempo_level (0..4 = 80..120 %); segment 1 starts a
 Main loop (`main.asm` / `play.asm`): frame-synced on `zp_frame`; states ST_TITLE / ST_PLAY /
 ST_PAUSED / ST_FINISH. In PLAY, per tick: `play_track_movement` → `zp_cur_mv` (0 warm-up,
 1..13, 14 finish) + `zp_mv_flag`; `zp_local_tick = tick & 63`; `choreo_tick`; `figure_render`;
-per beat `ui_beat` + spoken count; per movement `choreo_set_anim` + `ui_movement`; every frame
-`scroller_frame`, `ui_frame`, `digi_frame`. Movement grid: `movements.asm` (`mv_start_lo/hi`,
+per beat `ui_beat`; per movement `choreo_set_anim` + `ui_movement`; every frame
+`scroller_frame`, `ui_frame`. Movement grid: `movements.asm` (`mv_start_lo/hi`,
 `mv_anim_r1/r2`, timeline ids 0..19 documented there).
 
 Keys (`input.asm`): `keys_new` (16-bit press edges, consumed by the state code), `keys_stable`.
 Bindings: 1/2 routine (title) or tempo 80/90 % (play), 3/4/5 tempo 100/110/120 %, L language,
-V voice, SPACE pause, Q / RUN-STOP title, RETURN start — no function keys (the 1x size toggle
-was removed at the user's request; `figure_set_scale` still exists).
+SPACE pause, Q / RUN-STOP title, RETURN start — no function keys. Removed at the user's
+request: the 1x size toggle (`figure_set_scale` still exists) and the V voice toggle.
 
 ## Module contracts (each module owns its files; do not edit others' files)
 
@@ -113,8 +112,7 @@ was removed at the user's request; `figure_set_scale` still exists).
 - `music_frame`: called every frame from the bottom IRQ after `clock_frame`; act on
   `zp_tick_music` (clear it), never on `zp_tick_flag`.
 - Keep `mus_d418` = the byte the music wants in `$D418` (volume | filter mode); write `$D418`
-  only in init/stop/pause/resume — the digi NMI owns `$D418` while a word plays and restores
-  `mus_d418` afterwards.
+  only in init/play/stop/pause/resume/seek (nothing else touches it now the voice is gone).
 - Song data lives in the data segment (`gen_song*.asm`, included at $8000+); player code in the
   code segment. Period tables `song1_periods` / `song2_periods` (20 words as above) are part of
   the generated files.
@@ -145,39 +143,40 @@ was removed at the user's request; `figure_set_scale` still exists).
   figure band (+ sun/rays backdrop, count block cols 1-6, set/pips cols 32-38), 20 horizon,
   21 stations, 22-24 scroller zone. Palette in constants.asm.
 
-### Voice — `src/digi.asm`, `src/gen_digi.asm` (staged, `!pseudopc $E000`), `src/gen_digi2.asm` (data segment), `tools/digi.py`
-- `digi_play` (A = word: 0-7 ichi..hachi, 8 title1, 9 title2, 10 sutte, 11 haite, 12 otsukare),
-  `digi_stop`, `digi_frame`, `digi_toggle`, `digi_enabled`, `nmi_handler` (CIA2 timer A NMI;
-  must ack `$DD0D`; RESTORE key NMIs are ignored).
-- `$D418` = sample | (`mus_d418` & $F0) while playing; restore `mus_d418` at the end.
-- Staged part ≤ 4608 bytes (STAGE_LIMIT), rest in `gen_digi2.asm`.
-
 ## Play-state extras (play.asm)
 
 - `play_sec` / `play_min` (binary) = elapsed time, advanced per frame with `zp_ntsc`-aware fps.
 - `play_finish` (end of slot 13): sets `ANIM_BOW`, hides the scroller, jumps to `enter_finish`;
-  the main loop keeps calling `finish_tick` (choreo/figure/ui/digi housekeeping) in ST_FINISH.
+  the main loop keeps calling `finish_tick` (choreo/figure/ui housekeeping) in ST_FINISH.
 
 ## Memory budget (2026-09-04, integrated)
 
-code 10.6 KB / 11.7 KB (song 1 data lives here), stage 4.6 KB (digi part 1), frames 9.9 KB +
-backdrop in the VIC-bank spare, data 18.9 KB / 20 KB. Adding anything sizeable now means
-trimming: the 8×16 Latin scroller glyphs (704 B), the finish phrase sample (2 KB), pose head
-tilt frames. Keep `$7FFF` = 0.
+code 10.8 KB / 14.3 KB (song 1 data lives here), frames 9.9 KB + backdrop in the VIC-bank
+spare, data 12.9 KB / 20 KB. The digi voice (staging block + `gen_digi2`, ~11 KB) was removed
+at the user's request, freeing the $E000 block and ~6 KB of the data segment. Keep `$7FFF` = 0.
 
 ## Verification status (2026-09-04, final integration)
 
 - `make test`: 34 screenshots OK (title PAL/NTSC, border, HUD, raster, 26 movement screens,
   boundary, finish, NTSC movement). Full-length runs reach the finish screen on PAL (3:08)
   and NTSC.
-- Voice-on 100 s runs of both routines: 0 late border switches (DEBUG_HUD counter).
-- Audio (`check_wav.py`): song 1 PAL 8/8, song 1 with voice 7/7, song 2 PAL 8/10 (two
-  repeated-pitch bass probes report +40 ms — a detector limitation), song 1 NTSC within
-  ±32 ms (some probes 2 NTSC frames early; not investigated further, inaudible for the use).
+- 60 s HUD runs (voice removed): NTSC 0 late border switches, switch max line 250, 0 bad
+  register frames; PAL 0 late.
+- Audio (`check_wav.py`): song 1 PAL 8/8, song 2 PAL 8/10 (two repeated-pitch bass probes
+  report +40 ms — a detector limitation), song 1 NTSC within ±32 ms.
 - Not yet verified by a human: how it sounds and feels in real time (`make run`).
 
 ## Status log
 
+- 2026-09-04 (voice removed): at the user's request the digitised Japanese voice was
+  deleted entirely — it was not clear enough at 4-bit/5 kHz to be worth it. Removed
+  `src/digi.asm`, `src/gen_digi.asm`, `src/gen_digi2.asm`, `tools/digi.py`, `assets/voice/`,
+  the CIA2-timer NMI player, the load-time staging block ($3600-$47FF → $E000), the V key,
+  and every `digi_*` hook in play/title. The NMI vector is now a bare `rti` stub (RESTORE is
+  self-clearing). The music keeps `$D418` to itself (no more ducking). This also removes the
+  only source of the earlier NTSC scroller flicker; the border-switch timing margin is kept.
+  PRG 49.6 KB → 43.6 KB; data segment 18.9 KB → 12.9 KB. Also: no logo during play (the
+  top-border ラジオ体操第一 is gone while exercising; the title still shows it).
 - 2026-09-04 (NTSC round 7, fixed): the voice-on flicker of the NTSC scroller was the 24-row
   border switch, still dispatched at line 249 on NTSC, landing after line 251 in ~5 % of the
   frames (HUD: 158 late switches in 56 s with the voice, 1 without). The bottom entry now

@@ -41,7 +41,7 @@
 ; only from music_frame (IRQ) and from the API while music_frame is
 ; disabled (mus_active = 0), so they never interleave. $d418 is
 ; written only by init/play/stop/pause/resume/seek (mus_d418 holds the
-; wanted value; the digi NMI restores it after a word).
+; wanted value).
 ;
 ; API (all preserve nothing; called from the main thread):
 ;   music_init         boot: PAL/NTSC note table -> RAM, SID globals
@@ -829,7 +829,7 @@ sid_off:     !byte 0, 0, 7, 0, 14, 0        ; SID register offset (X = voice*2)
 park_byte:   !byte $ff                      ; a parked voice's pattern
 vib_dir_tab: !byte 0,0,0, 1,1,1,1,1,1, 0,0,0
 
-mus_d418:    !byte PLAY_D418    ; byte the music wants in $d418 (digi restores it)
+mus_d418:    !byte PLAY_D418    ; byte the music wants in $d418 (vol | filter mode)
 mus_active:  !byte 0            ; 1 = music_frame runs the sequencer / effects
 mus_silent:  !byte 0            ; 1 = suppress SID writes (seek fast-forward)
 mus_loop:    !byte 0            ; 1 = loop block 0 (title)

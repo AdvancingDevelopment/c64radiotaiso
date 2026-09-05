@@ -45,9 +45,7 @@ VEC_IRQ         = $fffe
 
 ; --- memory map ---
 CODE_START      = $0810
-CODE_LIMIT      = $3600         ; code + text + sprite metadata
-STAGE_START     = $3600         ; load-time staging (digi part 1 -> $e000)
-STAGE_LIMIT     = $4800
+CODE_LIMIT      = $4000         ; code + text + sprite metadata + song 1 (VIC bank at $4000)
 SCREEN          = $4000         ; VIC bank 1: $4000-$7fff
 SPR_PTRS        = $43f8
 DYN_SLOTS       = $4400         ; sprite slots 16..31 (scroller/logo buffers)
@@ -57,8 +55,6 @@ FRAMES          = $5000         ; sprite slots 64..255
 FRAMES_LIMIT    = $8000
 DATA_START      = $8000
 DATA_LIMIT      = $d000
-HIMEM_START     = $e000         ; runtime address of the staged block
-HIMEM_LIMIT     = $fffa
 COLOR_OFFSET_HI = >(COLOR_RAM - SCREEN)   ; $98: SCREEN+$9800 = COLOR_RAM
 
 VIC_BANK_BITS   = 2             ; $dd00 low bits for bank 1
@@ -70,16 +66,16 @@ LINE_FIGURE     = 66            ; commit figure sprite block (after the logo's l
 LINE_SPLIT_DEF  = 190           ; default shin split (overwritten per tick)
 LINE_SCROLL_PAL = 228           ; scroller IRQ line (sprites 4/5 written last; shin ink done by box+32)
 LINE_SCROLL_NTSC = 218          ; NTSC: early enough that the writes end well before Y 237 even
-                                ; when the digi NMI stretches them (~7 lines)
+                                ; when a badline + sprite DMA stretch them (~7 lines)
 SCR_Y_PAL       = 247           ; scroller glyph Y (Y-expanded, into the open bottom border);
                                 ; fixed: >= every possible scroller line + 6, so no jitter
 SCR_Y_NTSC      = 237           ; NTSC: 21 px, glyph rows 237-252 (figure raised 8 px so the
                                 ; shins end by 233); fixed for the same reason
 SHIN_END_NTSC   = 228           ; NTSC: the shin boxes end by 227; expansion may change after
 LINE_BORDER     = 249           ; 24-row mode (opens the borders) + music/input/frame tick
-LINE_BORDER_NTSC = 244          ; NTSC: the bottom entry fires early and waits for line 248 —
-                                ; dispatched at 249 the switch lands after 251 whenever the
-                                ; digi NMI stretches it, and the border closes over the scroller
+LINE_BORDER_NTSC = 244          ; NTSC: the bottom entry fires early and waits for line 248 so
+                                ; the switch always lands in 248-251 (a late one at 249 would
+                                ; close the border over the scroller's bottom glyph rows)
 LINE_PRE_DEF    = 205           ; scroller pre-commit (sprites 0-3,6,7) default line
 LINE_PRE_MIN    = 196           ; never earlier than this
 IRQ_ENTRIES     = 6
@@ -116,7 +112,6 @@ KEY_4           = %10000000     ; tempo 110 %
 KEY_5           = %00000001     ; tempo 120 %
 KEY_S           = %00000010     ; figure size 2x / 1x
 KEY_L           = %00000100     ; language emphasis
-KEY_V           = %00001000     ; voice on / off
 JOY_FIRE        = %00010000
 JOY_UP          = %00100000
 JOY_DOWN        = %01000000
@@ -158,7 +153,7 @@ zp_tick_music   = $1f           ; set by clock on a tick, cleared by music_frame
 zp_fig          = $20
 ; $30-$3f music
 zp_mus          = $30
-; $40-$47 digi
+; $40-$47 free (was digi voice)
 zp_digi         = $40
 ; $48-$4f scroller
 zp_scr          = $48

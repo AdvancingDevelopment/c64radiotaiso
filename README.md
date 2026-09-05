@@ -8,9 +8,9 @@ the retro sibling of [radiotaiso.org](https://radiotaiso.org).
   and are not used).
 - A 10-part articulated stick figure built from the 8 hardware sprites (shins multiplexed),
   with poses sampled from the website's animation rig at 1/8-beat resolution.
-- Digitized Japanese counting (いち・に・さん…) and announcements over the music.
 - Opened top/bottom borders, a kanji/kana sprite scroller in the bottom border (PAL), the
-  ラジオ体操 logo in the top border, a sunrise backdrop whose rays light up as you progress.
+  ラジオ体操 logo in the top border on the title, a sunrise backdrop whose rays light up as
+  you progress.
 
 ## Build and run
 
@@ -23,10 +23,10 @@ make test       # headless screenshots into build/test/
 ```
 
 Requirements: `acme`, `vice` (x64sc, c1541), `python3`, `node` (regenerating pose data needs
-`~/taiso/node_modules/gsap`), `ffmpeg` + macOS `say` (regenerating the voice).
+`~/taiso/node_modules/gsap`).
 
 Keys: `1`/`2` choose the routine (or joystick), `RETURN`/`SPACE`/fire start, `SPACE` pause,
-`L` Japanese/English emphasis, `V` voice on/off, `1`–`5` tempo 80/90/100/110/120 %,
+`L` Japanese/English emphasis, `1`–`5` tempo 80/90/100/110/120 %,
 `Q`/`RUN-STOP` back to the title. (Plain keys on purpose: function keys are awkward on
 Mac keyboards in VICE.)
 
@@ -36,11 +36,7 @@ Mac keyboards in VICE.)
 node tools/sample_rig.mjs && python3 tools/puppet.py   # poses from ~/taiso rig -> sprites/poses
 python3 tools/songconv.py && python3 tools/songconv.py --check   # music from ~/taiso/score
 python3 tools/glyphs.py && python3 tools/backdrop.py   # Japanese glyphs (Shinonome), backdrop
-python3 tools/digi.py                                   # voice (macOS `say -v Kyoko`, ffmpeg)
 ```
-
-Drop your own recordings as `assets/voice/<word>.wav` (see `assets/voice/README.md`) to replace
-the synthesized voice.
 
 ## Verification
 
@@ -52,11 +48,9 @@ builds show frame/tick/beat/count/movement/period and the raster-timing counters
 
 ## Notes
 
-- Works on PAL and NTSC (detected at boot). PAL shows the logo in the top border and the
-  scroller reaching into the bottom border; on NTSC (no visible borders) the scroller runs
-  inside rows 23-24 with a key hint on row 22, and the title logo sits in the picture. Test
-  NTSC with `make run-ntsc`.
-- The SID voice is 4-bit; 8580 SIDs need the "digi boost" fix (VICE: SID model 8580D).
-- Memory is nearly full (see HANDOFF.md) — adding content means trimming something.
+- Works on PAL and NTSC (detected at boot). The title logo sits in the top border (PAL) or
+  the picture (NTSC); during the exercise the top of the screen stays clear. PAL's scroller
+  reaches into the bottom border; on NTSC (no visible borders) it runs inside rows 23-24 with
+  a key hint on row 22. Test NTSC with `make run-ntsc`.
 
 See `HANDOFF.md` for the architecture, module contracts and the raster-timing lessons.

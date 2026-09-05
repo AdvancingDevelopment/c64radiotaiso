@@ -353,9 +353,9 @@ ui_ntsc_help:
         beq +
         +print 1, 22, txt_ntsc_help, COL_DIM
 +       rts
-txt_ntsc_help: !scr "space:pause  v:voice  1-5:tempo  q:quit", $ff
+txt_ntsc_help: !scr "space:pause  l:lang  1-5:tempo  q:quit", $ff
 txt_paused: !scr "paused", $ff
-txt_help1:  !scr "space:resume  q:quit  v:voice", $ff
+txt_help1:  !scr "space:resume    q:quit", $ff
 txt_help2:  !scr "l:language  1-5:tempo 80-120%", $ff
 
 ; finish screen texts (called by title.asm's enter_finish)
