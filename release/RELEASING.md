@@ -118,8 +118,8 @@ Every other listing wants a stable URL and most reviewers look for source.
 
 ## 6. Also worth listing (optional, 10 minutes each)
 
-- **Demozoo** (demozoo.org) — demoscene database, cross-links CSDb; add the
-  production under your scener/group with the same files and screenshots.
+- **Demozoo** (demozoo.org) — demoscene database, cross-links CSDb and Pouet:
+  https://demozoo.org/productions/397265/ (2026-09-05).
 - **Pouet** (pouet.net) — listed as type "game", platform C64:
   https://www.pouet.net/prod.php?which=106986 (2026-09-05). Comments and thumbs come from the scene.
 - **GameBase64** (gb64.com) — the big C64 games database; submissions go
